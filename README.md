@@ -64,3 +64,7 @@ O Netlify continua funcionando localmente, sem acesso de edição ao Google Shee
 A conexão permite ler as abas mensais, inserir um turno em um dia de uma linha existente ou vazia e excluir somente o conteúdo da célula de turno. Exibe conferência e exige confirmação. Não altera fórmulas, totais ou a estrutura das abas; recusa conflitos e valores que mudaram desde a conferência. Um turno combinado ocupa uma única célula: excluir essa célula remove todo o código combinado. O armazenamento do aplicativo Google é distinto do Netlify; transfira cadastros por backup.
 
 Para gerar o arquivo HTML do Apps Script após alterações, execute `python3 scripts/build_apps_script.py`. Validações: `node tests/calendar.test.cjs`, `node tests/shared-sheet.test.cjs`, além dos testes anteriores. A validação do Google Sheets usa uma simulação; a integração real ainda requer instalação pelo usuário.
+
+## Lista independente de POR QUEM
+
+O campo POR QUEM usa somente `replacements`, um cadastro separado de profissionais substituídos. Na seção Cadastro separado — POR QUEM, cole um nome por linha ou abra TXT, confira e importe. A lista principal de cooperados não alimenta esse campo. Busca ignora acentos e caixa. Reimportar não duplica nomes. Nomes históricos fora da lista continuam disponíveis quando o registro é editado. A lista separada faz parte do backup JSON; backups anteriores sem esse campo continuam válidos, com lista inicialmente vazia. Os nomes pessoais não são incluídos nos arquivos publicados. Teste: `node tests/replacements.test.cjs`.

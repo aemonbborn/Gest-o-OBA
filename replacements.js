@@ -1,0 +1,6 @@
+(function(root){
+ const clean=v=>String(v).trim().replace(/\s+/g,' '),norm=v=>clean(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
+ function review(text,existing=[]){const known=new Set(existing.map(norm));const entries=text.replace(/^\ufeff/,'').split(/\r?\n/).map((v,i)=>({line:i+1,name:clean(v)})).filter(e=>e.name);if(!entries.length)throw Error('Cole uma lista com um nome por linha.');for(const e of entries){if(e.name.length>120||/[\t;]/.test(e.name)){e.status='Inválido';continue;}if(['NOME','PROFISSIONAL DE ENFERMAGEM','POR QUEM'].includes(norm(e.name))){e.status='Cabeçalho';continue;}const key=norm(e.name);e.status=known.has(key)?'Repetido/já cadastrado':'Novo';known.add(key);}return {entries,newCount:entries.filter(e=>e.status==='Novo').length,duplicateCount:entries.filter(e=>e.status==='Repetido/já cadastrado').length,invalidCount:entries.filter(e=>e.status==='Inválido').length};}
+ function merge(state,result){return {...state,replacements:[...state.replacements||[],...result.entries.filter(e=>e.status==='Novo').map(e=>e.name)]};}
+ root.Replacements={review,merge,norm};if(typeof module!=='undefined')module.exports=root.Replacements;
+})(typeof window==='undefined'?globalThis:window);
