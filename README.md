@@ -38,3 +38,15 @@ O layout segue a cópia recebida: fevereiro mantém 31 posições com os dias in
 Verificações adicionais: plantão no primeiro e último dia do mês, fevereiro bissexto, separação das funções, agrupamento por motivo/substituído, horas diurnas e noturnas e conflitos. A cópia foi validada localmente; não foi feito teste de colagem na planilha compartilhada.
 
 Teste automatizado da grade: `node tests/monthly.test.cjs`.
+
+## Importação em lote
+
+Em Importar profissionais em lote, cole as quatro colunas copiadas de uma planilha ou abra TXT/CSV/TSV em UTF-8. Cabeçalhos aceitos: MAT/MATRÍCULA, NOME/PROFISSIONAL DE ENFERMAGEM, CATEGORIA/FUNÇÃO e COOPERATIVA. O aplicativo apresenta uma prévia e só salva ao clicar em Importar cadastros novos. Arquivos Excel devem ter as células copiadas como texto ou ser exportados em CSV; arquivos XLSX não são lidos diretamente.
+
+Matrícula é preservada como texto, inclusive zeros à esquerda. ENFERMEIRA é padronizado para ENFERMEIRO; TECNICO/TÉCNICO para TÉCNICO DE ENFERMAGEM; COPEN para COOPEN. Esses ajustes aparecem na conferência. Linhas inválidas e cadastros repetidos não são importados. A identidade considera nome, matrícula, cooperativa e função, ignorando diferenças de acentuação, caixa e espaços. Nomes iguais com vínculos diferentes ficam separados no seletor. Não altera registros históricos nem substitui cadastros existentes. Importar novamente a mesma lista não cria duplicados.
+
+Use Buscar profissional para filtrar nome, matrícula ou cooperativa. Ao selecionar um cadastro importado, os metadados são preenchidos. Na grade mensal é usado o nome original, sem as informações adicionais do seletor.
+
+A lista pessoal não está nos arquivos publicados: a importação acontece no navegador do usuário. Para transferir os cadastros ao Android, faça backup JSON no Windows e restaure no Android, lembrando que a restauração substitui os dados locais. Use o mesmo endereço do site para manter os registros durante atualizações.
+
+Testes: `node tests/professionals.test.cjs` e `node tests/monthly.test.cjs`.
