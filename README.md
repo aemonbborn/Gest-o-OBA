@@ -50,3 +50,17 @@ Use Buscar profissional para filtrar nome, matrícula ou cooperativa. Ao selecio
 A lista pessoal não está nos arquivos publicados: a importação acontece no navegador do usuário. Para transferir os cadastros ao Android, faça backup JSON no Windows e restaure no Android, lembrando que a restauração substitui os dados locais. Use o mesmo endereço do site para manter os registros durante atualizações.
 
 Testes: `node tests/professionals.test.cjs` e `node tests/monthly.test.cjs`.
+
+## Busca, substituição e calendário
+
+A busca do cooperado aceita vários termos em qualquer ordem e ignora acentos. Os resultados mostram nome e vínculo; toque em um resultado para selecionar. A lista mostra até 8 cartões e 30 opções por busca; refine o texto para encontrar outros cadastros. POR QUEM agora possui busca e seleção de nomes cadastrados; nomes de registros antigos permanecem disponíveis durante a edição.
+
+O calendário usa semana de segunda a domingo e apresenta um seletor de turno abaixo de cada data. Preencha um ou vários meses antes de salvar. Opções: M, T, MT, N, 9C, MN, TN e MTN; as combinações são salvas no formato anterior para preservar backups e cálculo de horas. Para remover um plantão local, edite o registro e selecione — no dia; para retirar todos os dias de um mês, use Limpar este mês. Registros exigem pelo menos um plantão.
+
+## Planilha compartilhada
+
+O Netlify continua funcionando localmente, sem acesso de edição ao Google Sheets. A integração preparada em [google-apps-script](google-apps-script/README.md) usa um aplicativo Google Apps Script executando como o usuário autenticado. Exige instalação e autorização na conta do usuário e validação em cópia da planilha antes do uso real. Nenhuma alteração foi enviada à planilha compartilhada durante o desenvolvimento.
+
+A conexão permite ler as abas mensais, inserir um turno em um dia de uma linha existente ou vazia e excluir somente o conteúdo da célula de turno. Exibe conferência e exige confirmação. Não altera fórmulas, totais ou a estrutura das abas; recusa conflitos e valores que mudaram desde a conferência. Um turno combinado ocupa uma única célula: excluir essa célula remove todo o código combinado. O armazenamento do aplicativo Google é distinto do Netlify; transfira cadastros por backup.
+
+Para gerar o arquivo HTML do Apps Script após alterações, execute `python3 scripts/build_apps_script.py`. Validações: `node tests/calendar.test.cjs`, `node tests/shared-sheet.test.cjs`, além dos testes anteriores. A validação do Google Sheets usa uma simulação; a integração real ainda requer instalação pelo usuário.
