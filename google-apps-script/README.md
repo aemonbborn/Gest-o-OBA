@@ -23,3 +23,5 @@ App.html é gerado por `python3 scripts/build_apps_script.py` a partir do aplica
 Para começar somente pela leitura, use Extensões → Apps Script na planilha real, instale Code.gs e App.html, execute configurarGestao e publique com sua conta como usuário que acessa. Abrir o app, listar abas e clicar em Carregar plantões existentes não modifica células. Confira os registros antes de usar Inserir ou Excluir, que exigem confirmação. A URL e a autorização da implantação precisam ser criadas pelo usuário; enviar o link da planilha não autoriza automaticamente o aplicativo.
 
 Ao atualizar código existente no Apps Script, use Implantar → Gerenciar implantações → Editar → Nova versão → Implantar. Preserve a mesma implantação para manter a origem usada pelos backups.
+
+Quando o bloco de técnicos tem os cabeçalhos dos dias vazios, usa a sequência validada do bloco acima, nas mesmas colunas. Cabeçalhos parciais ou contraditórios continuam bloqueados; o primeiro bloco precisa ter numeração válida.
