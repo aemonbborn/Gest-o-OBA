@@ -37,3 +37,9 @@ O modo local e a cópia CSV/grade continuam independentes da planilha remota. Se
 O fluxo principal é profissional → justificativa/POR QUEM → calendário. O mês atual carrega automaticamente e selecionar outra aba atualiza a grade. Histórico, importações e exportação ficam recolhidos em Cadastros e ferramentas. A escrita devolve a grade atualizada em sua resposta, reduzindo uma chamada adicional do navegador. Dados de busca são preparados uma vez e reutilizados; listas longas não são renderizadas antes de abrir suas ferramentas.
 
 O reaproveitamento compara profissional/vínculo, motivo e POR QUEM, permitindo matrícula ausente ou “-”. Se há linhas iguais anteriores, procura a primeira com o dia livre; se todas estão preenchidas, bloqueia em vez de criar outra linha igual. Matrículas preenchidas diferentes, cooperativas e funções não são misturadas.
+
+## Lista nativa e envio de escalas
+
+A função getReplacementNames lê a lista POR QUEM de DADOS!AE após conferir o cabeçalho. Atualize Code.gs e App.html para o carregamento nativo. Sem autorização Google, use importação local ou um backup que inclua os nomes.
+
+Preencher por escala gera uma prévia e seleções no calendário. Enviar seleções do mês usa planMonthlyInsertions para conferir o lote e changeMonthlyShifts para gravar após confirmação; mantém a linha existente. Todos os conflitos são conferidos antes da primeira escrita. Operações SpreadsheetApp não são uma transação: se o serviço falhar durante as escritas agrupadas, confira possíveis alterações parciais antes de reenviar. A interface atualiza a grade no erro e elimina seleções já confirmadas pelo conteúdo da planilha.

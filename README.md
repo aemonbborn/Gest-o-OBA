@@ -67,3 +67,22 @@ node tests/shared-layouts.test.cjs
 ```
 
 Verificações de navegador exercitaram inserção local, buscas, calendário em vários meses, ferramentas recolhidas, importações e fluxo Google simulado de leitura/escrita/exclusão. A organização foi verificada com 933 cadastros e 2.000 registros fictícios. Isso verifica o comportamento, sem estabelecer um tempo de resposta da implantação Google real.
+
+## Lista nativa e geração por escalas
+
+Na implantação Google, POR QUEM é carregado automaticamente de DADOS!AE3:AE, validando o cabeçalho AE2. A lista enviada pelo usuário tem os mesmos 992 nomes da aba na cópia analisada. Nenhum nome pessoal está embutido no site público. A lista nativa e cadastros locais são reunidos no seletor; Fazer backup inclui os nomes para transferência explícita ao modo local.
+
+No calendário, Preencher por escala oferece:
+
+- N 12×36 e MT 12×36: um plantão a cada dois dias; a data inicial é o primeiro plantão.
+- N 1 noite/2 noites de folga: um plantão a cada três dias, conforme regra confirmada pelo gestor.
+- MT alternado: semana 1 em segunda/quarta/sexta (36h), semana 2 em terça/quinta (24h). Escolha qual fase corresponde à semana que contém a data inicial. A média do ciclo de duas semanas é 30h/semana, e não 36h fixas.
+- Dias fixos: turno e dias da semana escolhidos pelo usuário.
+
+Escolha período e confira a prévia. Aplicar apenas preenche seleções no calendário; não escreve na planilha. Dias existentes ou seleções diferentes são sinalizados e preservados. Todas as regras incluem feriados quando coincidirem com o padrão; ajuste no calendário conforme a escala institucional. No modo local, o período pode ter até 366 dias. Na planilha, gere uma aba mensal por vez.
+
+Enviar seleções do mês permite conferir e confirmar um lote de até 31 datas. A validação de todos os dias ocorre antes da escrita, mantendo a linha do mesmo profissional/motivo/POR QUEM. Escritas são agrupadas por código. Google SpreadsheetApp não oferece transação para essas chamadas: uma falha do serviço durante a escrita pode deixar alterações parciais. O erro exige atualizar e conferir antes de reenviar; a interface reconcilia seleções que já aparecem na planilha com os mesmos dados.
+
+Testes adicionais: `node tests/schedules.test.cjs` e `node tests/native-replacements.test.cjs`.
+
+Pesquisa externa solicitada: consultas ao site SISQUAL e à CLT no Planalto foram tentadas, mas bloqueadas pelo proxy do ambiente (403 no túnel, antes de obter as páginas). Não atribuímos os padrões a material SISQUAL que não foi lido. Os ciclos e fases implementados seguem as regras confirmadas pelo gestor e a tabela de horas da planilha. Domínios necessários foram acrescentados à proposta de configuração do ambiente para permitir futura consulta, sem substituir destinos existentes.

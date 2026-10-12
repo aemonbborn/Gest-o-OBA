@@ -1,0 +1,9 @@
+const assert=require('node:assert/strict'),S=require('../schedules.js');
+let r=S.generate({type:'n12x36',start:'2026-10-01',end:'2026-10-07'});assert.deepEqual(r.items.map(i=>i.date),['2026-10-01','2026-10-03','2026-10-05','2026-10-07']);assert.equal(r.hours,48);
+r=S.generate({type:'n1f2',start:'2026-10-01',end:'2026-10-07'});assert.deepEqual(r.items.map(i=>i.date),['2026-10-01','2026-10-04','2026-10-07']);
+r=S.generate({type:'mt-alternating',start:'2026-10-05',end:'2026-10-18',phase:1});assert.deepEqual(r.items.map(i=>i.date),['2026-10-05','2026-10-07','2026-10-09','2026-10-13','2026-10-15']);assert.equal(r.hours,60);
+r=S.generate({type:'mt-alternating',start:'2026-10-05',end:'2026-10-18',phase:2});assert.deepEqual(r.items.map(i=>i.date),['2026-10-06','2026-10-08','2026-10-12','2026-10-14','2026-10-16']);
+r=S.generate({type:'n12x36',start:'2028-02-28',end:'2028-03-03'});assert.deepEqual(r.items.map(i=>i.date),['2028-02-28','2028-03-01','2028-03-03']);
+r=S.generate({type:'weekly',start:'2026-10-05',end:'2026-10-11',shift:'M',weekdays:[1,5]});assert.equal(r.items.length,2);assert.equal(r.hours,12);
+assert.throws(()=>S.generate({type:'n12x36',start:'2026-02-30',end:'2026-03-05'}));assert.throws(()=>S.generate({type:'n12x36',start:'2026-10-07',end:'2026-10-01'}));assert.throws(()=>S.generate({type:'mt-alternating',start:'2026-10-01',end:'2026-10-10',phase:3}));assert.throws(()=>S.generate({type:'weekly',start:'2026-10-01',end:'2026-10-10',shift:'M',weekdays:[]}));
+const p=S.preview([{date:'2026-10-01',code:'N'},{date:'2026-10-02',code:'N'},{date:'2026-10-03',code:'N'}],{'2026-10-02':'MT'},[{date:'2026-10-01',code:'N'}]);assert.deepEqual(p.map(i=>i.apply),[false,false,true]);console.log('PASS: dois ciclos noturnos, MT com fases 1/2, semanas de 36h/24h, bissexto, dias fixos, validação e prévia sem sobrescrever.');
