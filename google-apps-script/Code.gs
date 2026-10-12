@@ -5,6 +5,8 @@ function livro_(){const id=PropertiesService.getScriptProperties().getProperty('
 function norm_(v){return String(v||'').trim().replace(/\s+/g,' ').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();}
 const MONTHS_={JAN:1,FEV:2,MAR:3,ABRIL:4,MAIO:5,JUN:6,JUL:7,AGT:8,SET:9,OUT:10,NOV:11,DEZ:12};
 const CODES_=['M','T','MT','N','9C','MN','TN','MTN'];
+const INTEGRATION_VERSION_='lote-4';
+function getIntegrationInfo(){return {version:INTEGRATION_VERSION_};}
 function listMonthlySheets(){return livro_().getSheets().map(s=>s.getName()).filter(n=>MONTHS_[n]);}
 function grade_(name){if(!MONTHS_[name])throw Error('Selecione uma aba mensal válida.');const s=livro_().getSheetByName(name);if(!s)throw Error('Aba não encontrada.');const values=s.getDataRange().getDisplayValues();let year=null;for(const row of values.slice(0,12)){for(const cell of row){const match=String(cell).match(/\b(20\d{2})\b/);if(match)year=Number(match[1]);}}if(!year)throw Error('O título desta aba precisa conter o ano, por exemplo OUTUBRO DE 2026.');
 const blocks=[];for(let i=0;i<values.length;i++){const row=values[i];if(norm_(row[0])==='MAT'&&norm_(row[1])==='NOME'&&norm_(row[2])==='COOPERATIVA'&&norm_(row[3])==='MOTIVO'&&norm_(row[4])==='POR QUEM'){let category=null;for(let k=i-1;k>=Math.max(0,i-5);k--){const heading=norm_(values[k][0]);if(heading.includes('ENFERMEIROS')){category='ENFERMEIRO';break;}if(heading.includes('TECNICOS')){category='TÉCNICO DE ENFERMAGEM';break;}}if(!category)throw Error('Não foi possível identificar a função do bloco na linha '+(i+1));blocks.push({header:i+1,start:i+2,end:values.length,category});}}
@@ -29,13 +31,32 @@ function planInsertion_(g,p){
 function changeMonthlyShift(p){const lock=LockService.getScriptLock();lock.waitLock(15000);try{const g=grade_(p.sheet);if(p.code!==''&&!CODES_.includes(p.code))throw Error('Turno não reconhecido.');const cell=cell_(g,p.row,p.date);const meta=g.s.getRange(p.row,1,1,5).getDisplayValues()[0];if(!Array.isArray(p.expectedMeta)||p.expectedMeta.length!==5||meta.some((v,i)=>v!==p.expectedMeta[i])||cell.getDisplayValue()!==p.expected)throw Error('A planilha mudou desde a conferência. Recarregue antes de alterar.');if(cell.getFormula())throw Error('Esta célula contém fórmula e não será alterada.');if(p.code&&p.expected)throw Error('Não é permitido sobrescrever um plantão existente.');if(!p.code&&!p.expected)throw Error('A célula já está vazia.');if(p.code)assertShiftAvailable_(g,p.row,p.date,p.code,p.newMeta||meta);if(p.newMeta){const plan=planInsertion_(g,{sheet:p.sheet,date:p.date,code:p.code,meta:p.newMeta,category:p.category});if(plan.row!==p.row)throw Error('A linha disponível mudou; confira novamente.');for(let i=0;i<5;i++){const range=g.s.getRange(p.row,i+1);if(range.getFormula())throw Error('A linha contém fórmula nos dados cadastrais.');}g.s.getRange(p.row,1,1,5).setNumberFormat('@').setValues([p.newMeta]);}if(p.code)cell.setValue(p.code);else cell.clearContent();SpreadsheetApp.flush();return {ok:true,snapshot:readMonthlySheet(p.sheet)};}finally{lock.releaseLock();}}
 
 function getReplacementNames(){const sheet=livro_().getSheetByName('DADOS');if(!sheet)throw Error('Aba DADOS não encontrada para a lista POR QUEM.');const header=norm_(sheet.getRange(2,31).getDisplayValue());if(!['PROFISSIONAL DE ENFERMAGEM','NOME','POR QUEM'].includes(header))throw Error('O cabeçalho DADOS!AE2 não corresponde à lista POR QUEM.');const count=Math.max(0,sheet.getLastRow()-2);if(!count)return [];const values=sheet.getRange(3,31,count,1).getDisplayValues();const names=[],seen={};for(const row of values){const name=String(row[0]||'').trim().replace(/\s+/g,' '),key=norm_(name);if(name&&name.length<=120&&!seen[key]){seen[key]=true;names.push(name);}}return names.sort((a,b)=>a.localeCompare(b,'pt-BR'));}
-function planMonthlyInsertions(p){return batchPlan_(grade_(p.sheet),p);}
+function planMonthlyInsertions(p){const plan=batchPlan_(grade_(p.sheet),p);return {...plan,confirmation:batchFingerprint_(plan.changes)};}
 function batchPlan_(g,p){if(!Array.isArray(p.items)||!p.items.length||p.items.length>31||p.items.some(i=>!i||typeof i.date!=='string'||!CODES_.includes(i.code))||new Set(p.items.map(i=>i.date)).size!==p.items.length)throw Error('Selecione de 1 a 31 dias distintos do mês.');const staged={...g,values:g.values.map(row=>row.slice())};const changes=[];for(const item of [...p.items].sort((a,b)=>a.date.localeCompare(b.date))){const one=planInsertion_(staged,{...p,date:item.date,code:item.code});const originalMeta=g.values[one.row-1].slice(0,5),day=Number(item.date.slice(-2));changes.push({...one,expectedMeta:originalMeta});if(one.newMeta)staged.values[one.row-1].splice(0,5,...one.newMeta);staged.values[one.row-1][day+4]=item.code;}return {sheet:p.sheet,category:p.category,meta:p.meta,items:p.items,changes};}
-// Compare os dados conferidos, sem depender da ordem das chaves no transporte Google.
-function sameBatchChanges_(fresh,confirmed){
- if(!Array.isArray(confirmed)||fresh.length!==confirmed.length)return false;
- const sameMeta=(a,b)=>Array.isArray(b)&&a.length===b.length&&a.every((value,i)=>value===b[i]);
- return fresh.every((a,i)=>{const b=confirmed[i];return b&&['sheet','row','date','expected','code','category'].every(key=>a[key]===b[key])&&sameMeta(a.expectedMeta,b.expectedMeta)&&(a.newMeta===null?b.newMeta===null:sameMeta(a.newMeta,b.newMeta));});
+// O identificador é calculado e conferido no servidor; só a string atravessa o transporte.
+function batchFingerprint_(changes){
+ const data=changes.map(c=>[c.sheet,c.row,c.date,c.expected,c.expectedMeta,c.code,c.newMeta,c.category]);
+ const bytes=Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256,JSON.stringify(data),Utilities.Charset.UTF_8);
+ return INTEGRATION_VERSION_+':'+Utilities.base64EncodeWebSafe(bytes);
 }
-function changeMonthlyShifts(p){const lock=LockService.getScriptLock();lock.waitLock(15000);try{const g=grade_(p.sheet),fresh=batchPlan_(g,p);if(!sameBatchChanges_(fresh.changes,p.changes))throw Error('A planilha mudou desde a conferência. Atualize antes de enviar o lote.');for(const c of fresh.changes){if(c.newMeta)for(let i=0;i<5;i++)if(g.s.getRange(c.row,i+1).getFormula())throw Error('Uma linha do lote contém fórmula nos dados cadastrais.');}try{for(const c of fresh.changes)if(c.newMeta)g.s.getRange(c.row,1,1,5).setNumberFormat('@').setValues([c.newMeta]);const groups={};for(const c of fresh.changes){if(!groups[c.code])groups[c.code]=[];const col=Number(c.date.slice(-2))+5;groups[c.code].push(columnLetter_(col)+c.row);}for(const code of Object.keys(groups))g.s.getRangeList(groups[code]).setValue(code);SpreadsheetApp.flush();}catch(e){throw Error('O envio do lote não foi concluído. Atualize o calendário e confira possíveis alterações parciais antes de tentar novamente. '+e.message);}return {ok:true,count:fresh.changes.length,snapshot:readMonthlySheet(p.sheet)};}finally{lock.releaseLock();}}
+function batchConflictMessage_(fresh,p){
+ const prefix='Conferência do lote ['+INTEGRATION_VERSION_+']: ';
+ if(typeof p.confirmation!=='string'||!p.confirmation.startsWith(INTEGRATION_VERSION_+':'))return prefix+'a confirmação usa outra versão ou está incompleta. Reabra o aplicativo e confira o lote novamente. Nenhum plantão foi gravado neste envio.';
+ const fields=['sheet','row','date','expected','code','category'],labels={sheet:'aba',row:'linha',date:'data',expected:'conteúdo anterior',code:'turno',category:'função'},metaLabels=['matrícula','profissional','cooperativa','justificativa','POR QUEM'];
+ if(Array.isArray(p.changes)&&p.changes.length===fresh.changes.length)for(let i=0;i<fresh.changes.length;i++){
+  const a=fresh.changes[i],b=p.changes[i];let field='';
+  if(!b)field='dados da conferência';
+  else {const key=fields.find(k=>a[k]!==b[k]);if(key)field=labels[key];
+   else for(const key of ['expectedMeta','newMeta']){
+    if(a[key]===null){if(b[key]!==null)field='dados da linha';}
+    else if(!Array.isArray(b[key])||a[key].length!==b[key].length)field='dados cadastrais';
+    else {const index=a[key].findIndex((v,j)=>v!==b[key][j]);if(index>=0)field=metaLabels[index];}
+    if(field)break;
+   }
+  }
+  if(field)return prefix+'divergência em '+field+', aba '+a.sheet+', data '+a.date+', linha '+a.row+'. Atualize o calendário e confira o lote novamente. Nenhum plantão foi gravado neste envio.';
+ }
+ return prefix+'o identificador da confirmação não corresponde aos dados atuais. Atualize o calendário e confira o lote novamente. Nenhum plantão foi gravado neste envio.';
+}
+function changeMonthlyShifts(p){const lock=LockService.getScriptLock();lock.waitLock(15000);try{const g=grade_(p.sheet),fresh=batchPlan_(g,p);if(batchFingerprint_(fresh.changes)!==p.confirmation)throw Error(batchConflictMessage_(fresh,p));for(const c of fresh.changes){if(c.newMeta)for(let i=0;i<5;i++)if(g.s.getRange(c.row,i+1).getFormula())throw Error('Uma linha do lote contém fórmula nos dados cadastrais.');}try{for(const c of fresh.changes)if(c.newMeta)g.s.getRange(c.row,1,1,5).setNumberFormat('@').setValues([c.newMeta]);const groups={};for(const c of fresh.changes){if(!groups[c.code])groups[c.code]=[];const col=Number(c.date.slice(-2))+5;groups[c.code].push(columnLetter_(col)+c.row);}for(const code of Object.keys(groups))g.s.getRangeList(groups[code]).setValue(code);SpreadsheetApp.flush();}catch(e){throw Error('O envio do lote não foi concluído. Atualize o calendário e confira possíveis alterações parciais antes de tentar novamente. '+e.message);}return {ok:true,count:fresh.changes.length,snapshot:readMonthlySheet(p.sheet)};}finally{lock.releaseLock();}}
 function columnLetter_(col){let out='';while(col){const rem=(col-1)%26;out=String.fromCharCode(65+rem)+out;col=Math.floor((col-1)/26);}return out;}
