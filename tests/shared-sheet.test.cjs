@@ -8,3 +8,5 @@ assert(context.readMonthlySheet('OUT').records.some(r=>r.row===22&&r.date==='202
 const technicianPlan=context.planMonthlyInsertion({sheet:'OUT',date:'2026-10-01',code:'M',meta:['456','Técnico de teste','COOPEN','ROTINA',''],category:'TÉCNICO DE ENFERMAGEM'});context.changeMonthlyShift(technicianPlan);assert.equal(values[21][5],'M');assert.equal(values[21][35],'N');
 values[19][5]='2';assert.throws(()=>context.readMonthlySheet('OUT'),/Dias fora/);values[19][5]='';values[10][5]='';assert.throws(()=>context.readMonthlySheet('OUT'),/Dias fora/);
 console.log('PASS: técnicos sem cabeçalho próprio, dia 1/31, inserção na coluna correta e rejeição de cabeçalhos parciais ou inválidos.');
+
+values[10][5]='1';values[14].splice(0,5,'123','Teste','COOPEN','OUTRO MOTIVO','');values[14][8]='T';assert.throws(()=>context.planMonthlyInsertion({...payload,date:'2026-10-04',code:'MT'}),/sobreposto/);console.log('PASS: bloqueio de sobreposição entre linhas e motivos diferentes do mesmo profissional.');

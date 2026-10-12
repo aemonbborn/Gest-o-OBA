@@ -25,3 +25,9 @@ Para começar somente pela leitura, use Extensões → Apps Script na planilha r
 Ao atualizar código existente no Apps Script, use Implantar → Gerenciar implantações → Editar → Nova versão → Implantar. Preserve a mesma implantação para manter a origem usada pelos backups.
 
 Quando o bloco de técnicos tem os cabeçalhos dos dias vazios, usa a sequência validada do bloco acima, nas mesmas colunas. Cabeçalhos parciais ou contraditórios continuam bloqueados; o primeiro bloco precisa ter numeração válida.
+
+## Uso do calendário conectado
+
+No aplicativo Google, escolha Planilha compartilhada no calendário, selecione a aba e Carregar / atualizar mês. Escolha o profissional na busca superior: os dias exibem seus plantões reais carregados da aba. Turno verde: existente; seleção amarela: nova, ainda não enviada. Use Inserir no dia para confirmar uma nova célula; toque no turno verde para confirmar sua exclusão. Cada operação relê a planilha e atualiza o calendário. O carregamento também inclui perfis dos profissionais encontrados nos plantões, sem exigir importação prévia.
+
+O modo local e a cópia CSV/grade continuam independentes da planilha remota. Se houver erro de leitura, atualize novamente antes de inserir. O script impede sobreposições entre linhas do mesmo vínculo e não sobrescreve células preenchidas. Para esta versão, atualize os dois arquivos Code.gs e App.html e publique Nova versão. A validação automatizada usou um serviço simulado, sem alterar a planilha do usuário.

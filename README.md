@@ -70,3 +70,13 @@ Para gerar o arquivo HTML do Apps Script após alterações, execute `python3 sc
 O campo POR QUEM usa somente `replacements`, um cadastro separado de profissionais substituídos. Na seção Cadastro separado — POR QUEM, cole um nome por linha ou abra TXT, confira e importe. A lista principal de cooperados não alimenta esse campo. Busca ignora acentos e caixa. Reimportar não duplica nomes. Nomes históricos fora da lista continuam disponíveis quando o registro é editado. A lista separada faz parte do backup JSON; backups anteriores sem esse campo continuam válidos, com lista inicialmente vazia. Os nomes pessoais não são incluídos nos arquivos publicados. Teste: `node tests/replacements.test.cjs`.
 
 A área Copiar para a planilha está antes do formulário e das importações. Um botão fixo no rodapé copia a grade configurada, mostrando mês e função; ele copia somente registros salvos, com o mesmo formato do botão principal. A grade de conferência pode ser expandida.
+
+## Calendário conectado à planilha
+
+Na implantação Google Apps Script, o calendário oferece o modo Planilha compartilhada. Escolha a aba mensal e Carregar / atualizar mês. Os perfis presentes nos plantões carregados aparecem na busca mesmo sem cadastro local. Ao selecionar o profissional, os turnos da planilha aparecem como botões verdes nos dias, incluindo plantões de motivos diferentes. Selecione um turno novo (amarelo), preencha motivo/substituído no formulário e toque em Inserir no dia; confira a confirmação. Toque em um turno verde para excluir somente aquela célula, com confirmação do motivo, data e pessoa substituída.
+
+Após a resposta de inserção/exclusão, o calendário relê a aba. Uma falha de leitura impede novos envios até atualizar. A camada de escrita confere o conteúdo atual e bloqueia sobreposições em outras linhas do mesmo nome/matrícula/cooperativa/função. Códigos especiais em outro plantão do mesmo dia exigem conferência manual. Não sobrescreve fórmulas nem turnos existentes. Se houver várias linhas idênticas, a inserção exige revisão da planilha.
+
+Novas seleções da planilha ficam separadas por profissional e só são enviadas após confirmação; não são registros locais nem cópias dos turnos existentes. O modo Registros deste dispositivo mantém o fluxo local anterior. O botão Copiar linhas continua copiando somente registros locais salvos. A integração real usa a URL do Apps Script; a publicação Netlify não recebe acesso ao Google automaticamente.
+
+Atualizações desta integração exigem substituir Code.gs e App.html e publicar Nova versão na mesma implantação. Os testes de interface móvel usaram o adaptador de planilha simulado; a conexão autenticada na conta do usuário ainda precisa ser validada na cópia de teste.
