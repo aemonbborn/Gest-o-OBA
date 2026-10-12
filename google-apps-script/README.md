@@ -42,6 +42,8 @@ O reaproveitamento compara profissional/vínculo, motivo e POR QUEM, permitindo 
 
 A função getReplacementNames lê a lista POR QUEM de DADOS!AE após conferir o cabeçalho. Atualize Code.gs e App.html para o carregamento nativo. Sem autorização Google, use importação local ou um backup que inclua os nomes.
 
+Se aparecer `[name] is not a function` ou “A implantação está sem a função getReplacementNames”, a interface está chamando uma função ausente na versão publicada do servidor. Substitua o conteúdo completo de Code.gs e App.html pelos arquivos atuais, salve os dois e publique **Nova versão** na mesma implantação. Apenas salvar no editor não atualiza a URL publicada. Reabra a URL do aplicativo após implantar. Na mesma cópia e no mesmo projeto já configurado, não é necessário executar configurarGestao novamente.
+
 Preencher por escala gera uma prévia e seleções no calendário. Enviar seleções do mês usa planMonthlyInsertions para conferir o lote e changeMonthlyShifts para gravar após confirmação; mantém a linha existente. Todos os conflitos são conferidos antes da primeira escrita. Operações SpreadsheetApp não são uma transação: se o serviço falhar durante as escritas agrupadas, confira possíveis alterações parciais antes de reenviar. A interface atualiza a grade no erro e elimina seleções já confirmadas pelo conteúdo da planilha.
 
 ## Catálogo ampliado e continuidade
