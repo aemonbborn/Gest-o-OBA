@@ -17,3 +17,9 @@ Inserção preenche uma célula de um dia em linha existente com os mesmos metad
 Os testes automatizados usam um modelo simulado de planilha e não substituem a validação na cópia real. Este script ainda não foi instalado, autorizado ou executado no Google Sheets do usuário. A opção de conexão é mostrada apenas quando o app roda pelo Apps Script.
 
 App.html é gerado por `python3 scripts/build_apps_script.py` a partir do aplicativo. Execute esse comando após mudanças de interface.
+
+## Primeiro acesso à planilha real
+
+Para começar somente pela leitura, use Extensões → Apps Script na planilha real, instale Code.gs e App.html, execute configurarGestao e publique com sua conta como usuário que acessa. Abrir o app, listar abas e clicar em Carregar plantões existentes não modifica células. Confira os registros antes de usar Inserir ou Excluir, que exigem confirmação. A URL e a autorização da implantação precisam ser criadas pelo usuário; enviar o link da planilha não autoriza automaticamente o aplicativo.
+
+Ao atualizar código existente no Apps Script, use Implantar → Gerenciar implantações → Editar → Nova versão → Implantar. Preserve a mesma implantação para manter a origem usada pelos backups.

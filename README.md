@@ -68,3 +68,5 @@ Para gerar o arquivo HTML do Apps Script após alterações, execute `python3 sc
 ## Lista independente de POR QUEM
 
 O campo POR QUEM usa somente `replacements`, um cadastro separado de profissionais substituídos. Na seção Cadastro separado — POR QUEM, cole um nome por linha ou abra TXT, confira e importe. A lista principal de cooperados não alimenta esse campo. Busca ignora acentos e caixa. Reimportar não duplica nomes. Nomes históricos fora da lista continuam disponíveis quando o registro é editado. A lista separada faz parte do backup JSON; backups anteriores sem esse campo continuam válidos, com lista inicialmente vazia. Os nomes pessoais não são incluídos nos arquivos publicados. Teste: `node tests/replacements.test.cjs`.
+
+A área Copiar para a planilha está antes do formulário e das importações. Um botão fixo no rodapé copia a grade configurada, mostrando mês e função; ele copia somente registros salvos, com o mesmo formato do botão principal. A grade de conferência pode ser expandida.
