@@ -13,4 +13,18 @@ assert.throws(()=>R.parse('','2026-10'),/Cole/);assert.throws(()=>R.parse('Nome;
 assert.throws(()=>R.parse(Array.from({length:501},(_,i)=>`Nome ${i};1;N`).join('\n'),'2026-10'),/500/);
 assert.throws(()=>R.parse('a'.repeat(1024*1024+1),'2026-10'),/1 MB/);
 assert.notEqual(R.targetKey({sheet:'OUT',row:13,date:'2026-10-01'}),R.targetKey({sheet:'NOV',row:13,date:'2026-11-01'}));
+// Mesmo formato de seis colunas e 22 datas fornecido pelo usuário, com nome fictício.
+const days=[1,2,5,6,7,8,9,12,13,14,15,16,19,20,21,22,23,26,27,28,29,30];
+const rows=days.map(day=>[String(day).padStart(2,'0')+'/10/2026','Profissional de Teste','Setor ignorado','T','Função ignorada','Cooperativa ignorada']);
+for(const delimiter of ['\t',';',',','|']){
+ const formatted=rows.map(row=>delimiter==='|'?'| '+row.join(' | ')+' |':row.join(delimiter)).join('\n');
+ const parsed=R.parse(formatted,'2026-10');assert.equal(parsed.items.length,22);assert.equal(parsed.entries.filter(e=>e.error).length,0);
+ assert(parsed.items.every(item=>item.name==='Profissional de Teste'&&item.code==='T'));assert.deepEqual(parsed.items.map(item=>item.date),days.map(day=>'2026-10-'+String(day).padStart(2,'0')));
+ assert(parsed.items.every(item=>!('cooperative' in item)&&!('category' in item)&&!('sector' in item)));
+}
+const table=R.parse('| DATA | NOME | SETOR | TURNO | FUNÇÃO | COOPERATIVA |\n| :---: | --- | --- | :-: | --- | --- |\n| 01/10/2026 | Nome Teste | Outro setor | T | Outra função | Outra cooperativa |','2026-10');
+assert.equal(table.entries.length,1);assert.equal(table.items.length,1);assert.equal(table.items[0].line,3);
+assert.equal(R.parse('01/10/2026\tNome Teste\t\tT\t\t','2026-10').items.length,1);
+assert.equal(R.parse('| 01/10/2026 | Nome Teste | Setor | X | Função | Cooperativa |','2026-10').items.length,0);
+assert.equal(R.parse('31/11/2026;Nome Teste;Setor;N;Função;Cooperativa','2026-10').items.length,0);
 console.log('PASS: lista colada/CSV/TXT, nomes completos, datas brasileiras e ISO, ano/mês de referência, duplicados, limites e rejeição de datas ou turnos inválidos.');

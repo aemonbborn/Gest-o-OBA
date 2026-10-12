@@ -16,13 +16,15 @@ No modo local, preencha os dias e use Salvar plantões. É possível selecionar 
 
 ## Remover plantões por lista
 
-No calendário conectado, abra **Remover plantões por lista**. Cole três colunas copiadas do Excel, ou linhas de texto/CSV/TXT no formato:
+No calendário conectado, abra **Remover plantões por lista**. Cole a tabela inteira copiada do Excel ou em texto/CSV/TXT, nesta ordem:
 
 ```text
-NOME; DATA; TURNO
-Nome do profissional; 15/10/2026; N
-Outro profissional; 01/11/2026; MT
+DATA; NOME; SETOR; TURNO; FUNÇÃO; COOPERATIVA
+15/10/2026; Nome do profissional; Setor; T; Função; Cooperativa
+01/11/2026; Outro profissional; Setor; MT; Função; Cooperativa
 ```
+
+A leitura usa somente **data, nome e turno**; setor, função e cooperativa da lista são ignorados. Aceita colunas separadas por tabulação, ponto e vírgula, vírgula ou barras `|`, incluindo tabelas Markdown com cabeçalho e linha de separação. Também continua aceitando o formato compacto **NOME; DATA; TURNO**. Colunas vazias nas posições ignoradas são preservadas. Não publica os nomes da lista nos arquivos do aplicativo.
 
 Use **Conferir lista na planilha**, revise os registros e clique em **Remover selecionados**. Para escolher, clique na caixa ou no texto **Marcar para remoção**; o texto **Selecionado para remoção** permite desmarcar. A primeira conferência apenas consulta a planilha e atualiza o calendário. Um registro único sem fórmula é marcado automaticamente; quando há mais de um com o mesmo nome, data e turno, escolha pela matrícula, cooperativa, função, justificativa e POR QUEM. **Ver no calendário** carrega o mês e o profissional; as células selecionadas para remoção aparecem em vermelho quando correspondem aos dados conferidos.
 
