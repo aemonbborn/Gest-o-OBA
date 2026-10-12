@@ -46,6 +46,8 @@ Se aparecer `[name] is not a function` ou “A implantação está sem a funçã
 
 Preencher por escala gera uma prévia e seleções no calendário. Enviar seleções do mês usa planMonthlyInsertions para conferir o lote e changeMonthlyShifts para gravar após confirmação; mantém a linha existente. Todos os conflitos são conferidos antes da primeira escrita. Operações SpreadsheetApp não são uma transação: se o serviço falhar durante as escritas agrupadas, confira possíveis alterações parciais antes de reenviar. A interface atualiza a grade no erro e elimina seleções já confirmadas pelo conteúdo da planilha.
 
+A conferência do lote compara os valores de cada campo, independentemente da ordem das chaves no transporte entre navegador e Google. Isso evita o falso aviso “A planilha mudou desde a conferência” quando os dados continuam iguais. Mudanças reais na linha, nos metadados, nos turnos ou nas fórmulas continuam bloqueadas antes da escrita. Para instalar essa correção, atualize Code.gs, salve e publique Nova versão na mesma implantação.
+
 ## Catálogo ampliado e continuidade
 
 Preencher por escala inclui 24×48/24×72 (MTN), 5×2, 6×1, 4×2 e ciclo personalizado. A mesma Data-base deve ser mantida ao gerar meses diferentes, para preservar a fase. A carga é calculada pelo turno escolhido, e não por uma jornada padrão suposta. As referências lidas e os limites da pesquisa estão em docs/escalas-e-referencias.md. Atualize App.html para a interface e preserve Code.gs atualizado para o envio de MTN e lotes.
