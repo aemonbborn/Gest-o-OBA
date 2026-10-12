@@ -85,4 +85,10 @@ Enviar seleções do mês permite conferir e confirmar um lote de até 31 datas.
 
 Testes adicionais: `node tests/schedules.test.cjs` e `node tests/native-replacements.test.cjs`.
 
-Pesquisa externa solicitada: consultas ao site SISQUAL e à CLT no Planalto foram tentadas, mas bloqueadas pelo proxy do ambiente (403 no túnel, antes de obter as páginas). Não atribuímos os padrões a material SISQUAL que não foi lido. Os ciclos e fases implementados seguem as regras confirmadas pelo gestor e a tabela de horas da planilha. Domínios necessários foram acrescentados à proposta de configuração do ambiente para permitir futura consulta, sem substituir destinos existentes.
+Pesquisa atualizada: as páginas oficiais da SISQUAL sobre saúde e transição 5×2 foram consultadas nesta tarefa. As referências, limites da pesquisa e definições de cada modelo estão em [Escalas e referências](docs/escalas-e-referencias.md).
+
+## Catálogo ampliado
+
+Além dos padrões anteriores, a geração inclui 24×48/24×72 em MTN, 5×2, 6×1, 4×2 e ciclo personalizado. Nos padrões em dias trabalhados/folgas, escolha o turno para calcular a carga efetiva. A prévia mostra horas do período e média teórica semanal; 5×2 não implica automaticamente 40h quando o turno da planilha tem 6h.
+
+Defina a Data-base do ciclo e preserve-a ao gerar os meses seguintes. O período inicial/final pode mudar sem reiniciar a sequência. A semana do MT alternado é definida pela data-base; nos dias fixos, a data-base não é usada. A geração aceita ciclos de até 14 dias de trabalho e 14 de descanso. Consulte os detalhes e fontes em docs/escalas-e-referencias.md.

@@ -43,3 +43,7 @@ O reaproveitamento compara profissional/vínculo, motivo e POR QUEM, permitindo 
 A função getReplacementNames lê a lista POR QUEM de DADOS!AE após conferir o cabeçalho. Atualize Code.gs e App.html para o carregamento nativo. Sem autorização Google, use importação local ou um backup que inclua os nomes.
 
 Preencher por escala gera uma prévia e seleções no calendário. Enviar seleções do mês usa planMonthlyInsertions para conferir o lote e changeMonthlyShifts para gravar após confirmação; mantém a linha existente. Todos os conflitos são conferidos antes da primeira escrita. Operações SpreadsheetApp não são uma transação: se o serviço falhar durante as escritas agrupadas, confira possíveis alterações parciais antes de reenviar. A interface atualiza a grade no erro e elimina seleções já confirmadas pelo conteúdo da planilha.
+
+## Catálogo ampliado e continuidade
+
+Preencher por escala inclui 24×48/24×72 (MTN), 5×2, 6×1, 4×2 e ciclo personalizado. A mesma Data-base deve ser mantida ao gerar meses diferentes, para preservar a fase. A carga é calculada pelo turno escolhido, e não por uma jornada padrão suposta. As referências lidas e os limites da pesquisa estão em docs/escalas-e-referencias.md. Atualize App.html para a interface e preserve Code.gs atualizado para o envio de MTN e lotes.
