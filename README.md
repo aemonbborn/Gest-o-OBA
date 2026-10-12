@@ -1,8 +1,46 @@
 # Gestão Emergência Adulto
 
-Aplicativo web para uso pessoal: cadastro de profissionais, acionamentos por datas e turnos (M, T, MT, N, 9C), 26 justificativas, edição, busca, exclusão, exportação CSV e backup JSON.
+Aplicativo pessoal para organizar acionamentos de cooperados e editar plantões em uma grade mensal Google Sheets.
 
-## Desenvolvimento
+## Fluxo principal
+
+1. Busque e escolha o profissional. Nome, matrícula, cooperativa e função distinguem vínculos diferentes.
+2. Escolha a justificativa e quem será substituído. POR QUEM possui cadastro independente dos cooperados.
+3. Preencha os turnos no calendário.
+
+No computador, formulário e calendário ficam lado a lado; no celular, o formulário aparece primeiro. A navegação superior dá acesso ao calendário. Dados do vínculo e observações ficam recolhidos e são preenchidos pelo cadastro. Dados incompletos abrem essa seção para revisão.
+
+Na implantação Google Apps Script, o mês atual carrega automaticamente quando sua aba está disponível. Trocar de aba carrega o calendário correspondente. Os turnos existentes aparecem em verde; seleções novas aparecem em amarelo. Use Inserir no dia e confirme para enviar; toque em um turno verde para confirmar exclusão. Os perfis da planilha também aparecem na busca, sem exigir importação prévia. A resposta de escrita inclui a grade atualizada, reduzindo uma chamada separada de recarga.
+
+No modo local, preencha os dias e use Salvar plantões. É possível selecionar vários meses antes de salvar; — retira a seleção de um dia. Turnos M, T, MT, N, 9C, MN, TN e MTN preservam compatibilidade com os backups anteriores.
+
+## Cadastros e ferramentas
+
+Histórico, importações, cópia/CSV, backups e configuração da conexão ficam em uma área recolhida, acessível pelo botão superior. Histórico e exportação são renderizados sob demanda. O histórico apresenta até 50 resultados por busca; refine o filtro para encontrar os demais.
+
+Importação de cooperados: cole matrícula/nome/categoria/cooperativa ou abra TXT/CSV/TSV UTF-8. Confira a prévia antes de importar. ENFERMEIRA e TECNICO são padronizados; COPEN é mapeado para COOPEN e sinalizado. Reimportação não duplica os mesmos vínculos; nomes com vínculos diferentes ficam separados. Excel deve ser copiado como texto ou exportado em CSV; XLSX não é lido diretamente no app.
+
+Importação POR QUEM: um nome por linha, por texto ou TXT, com conferência antes de salvar. Não usa a lista principal. Nomes históricos permanecem disponíveis ao editar registros antigos.
+
+Cópia mensal: selecione mês e função em Copiar ou exportar registros locais. Cole na coluna A de uma linha vazia do bloco correspondente. A cópia contém matrícula, nome, cooperativa, motivo, POR QUEM e dias, sem cabeçalho ou totais, para preservar fórmulas. Não cole sobre registros existentes, pois dias vazios substituem valores. O CSV mensal inclui cabeçalho e CHD/CHN/CH para conferência. A grade usa 31 posições em fevereiro (dias inexistentes vazios), 30 em abril/junho/setembro/novembro e 31 nos demais, conforme o modelo fornecido.
+
+## Reaproveitamento de linhas
+
+Na planilha, o mesmo profissional/vínculo com a mesma justificativa e POR QUEM reutiliza uma linha existente. Matrícula vazia ou “-” não impede o reaproveitamento. Matrículas preenchidas diferentes, cooperativas ou funções diferentes não são unificadas. Havendo duplicatas preexistentes, procura uma linha correspondente com o dia livre antes de considerar outra linha. Se todas estão ocupadas, bloqueia a inserção em vez de criar uma linha adicional para o mesmo conjunto. Não consolida nem remove duplicatas históricas automaticamente.
+
+Se motivo ou POR QUEM forem diferentes, pode preencher outra linha vazia do bloco. Não insere linhas estruturais, não sobrescreve turnos, fórmulas ou totais. Alterações desde a conferência e sobreposições em outras linhas são bloqueadas. Exclusão remove apenas o turno da célula, mantendo a linha. Turnos combinados são excluídos como uma única célula.
+
+A grade mensal local usa a mesma regra de agrupamento, inclusive quando um registro não tem matrícula.
+
+## Dados e conexão
+
+Os dados locais usam localStorage por navegador/origem. Faça backup JSON antes de limpar dados, mudar domínio/navegador ou restaurar. Restauração substitui os dados locais. Cadastros e listas pessoais não são publicados nos arquivos do aplicativo.
+
+A implantação Google e o Netlify têm armazenamentos distintos; use backup para transferir cadastros. O Netlify não recebe acesso à planilha somente por conhecer seu endereço. A integração usa autorização Google, executando como o usuário que acessa, conforme [as instruções](google-apps-script/README.md).
+
+O calendário conectado foi validado com o adaptador Google simulado e com layouts exportados das abas reais, não em uma sessão autenticada na conta do usuário. Valide primeiro na cópia de teste. O site informado pelo usuário exige nova publicação para refletir mudanças no GitHub.
+
+## Desenvolvimento e verificações
 
 Sem dependências externas. Use Python 3:
 
@@ -11,72 +49,21 @@ cd /workspace/Gest-o-OBA
 python3 -m http.server 8000 --bind 0.0.0.0
 ```
 
-Acesse pelo navegador no computador de desenvolvimento. Para instalação no Android/Windows e funcionamento offline, publique os arquivos em um servidor HTTPS. O endereço HTTP local é destinado a desenvolvimento; em outro dispositivo, HTTP sem TLS não habilita os recursos de PWA. A disponibilidade de instalação depende do navegador. Nenhuma hospedagem pública foi configurada.
+Use hospedagem HTTPS para instalação PWA em dispositivos externos. Gere App.html após mudanças no aplicativo:
 
-## Dados e backup
+```sh
+python3 scripts/build_apps_script.py
+```
 
-Os dados são armazenados em localStorage por navegador e origem. Não há login, backend, sincronização entre dispositivos ou integração automática com Google Sheets. Não limpe os dados do navegador sem backup. Faça backup JSON regularmente e antes de restaurar; restauração substitui todos os dados. Mudar domínio, navegador ou porta cria um armazenamento separado. Não inclua informações clínicas identificáveis nas observações.
+Testes:
 
-O CSV usa UTF-8 com BOM e ponto e vírgula, com uma linha por data e turno selecionado. MT é preservado como um turno próprio. O formato ainda precisa ser comparado com a planilha de destino.
+```sh
+node tests/monthly.test.cjs
+node tests/professionals.test.cjs
+node tests/calendar.test.cjs
+node tests/replacements.test.cjs
+node tests/shared-sheet.test.cjs
+node tests/shared-layouts.test.cjs
+```
 
-## Validação manual
-
-Cadastre um profissional; selecione duas datas com turnos distintos; salve; recarregue e confirme persistência; edite; filtre o histórico; exporte CSV e JSON; restaure JSON; exclua com confirmação. Verifique que uma data sem turno impede o salvamento. Em HTTPS, instale e verifique a abertura offline após o primeiro acesso.
-
-## Grade mensal para colar na planilha compartilhada
-
-Cadastre ou edite os acionamentos com matrícula (opcional), cooperativa, função e profissional substituído (campo POR QUEM, opcional). A cooperativa, a matrícula e a função do profissional ficam disponíveis para próximos lançamentos. Registros antigos e backups anteriores continuam aceitos; complete função e cooperativa dos registros do mês antes de exportar.
-
-Na seção Planilha mensal, escolha mês e bloco (enfermeiros ou técnicos). O aplicativo agrupa por profissional, matrícula, cooperativa, motivo e profissional substituído, ordenando por nome. Cada dia recebe um código de turno. M+T gera MT; M+N gera MN; T+N gera TN; MT+N gera MTN. MT com M/T, ou 9C com outro turno, impede a exportação até revisão. Sobreposições em motivos/substituições diferentes também impedem geração. Turnos idênticos repetidos no mesmo grupo são contados uma vez e sinalizados.
-
-Use **Copiar linhas para colar** e cole na coluna A de uma linha vazia do bloco correspondente na aba mensal da planilha compartilhada. A cópia não inclui cabeçalho nem CHD/CHN/CH, preservando as fórmulas existentes. Não cole sobre linhas já preenchidas: células vazias na grade substituem valores do destino. Se a permissão de área de transferência não funcionar, o aplicativo oferece um campo para copiar manualmente.
-
-O layout segue a cópia recebida: fevereiro mantém 31 posições com os dias inexistentes vazios; abril, junho, setembro e novembro têm 30; os demais têm 31. Gere e cole cada função separadamente. Se a estrutura da planilha compartilhada mudar, confira os cabeçalhos antes de colar.
-
-**Baixar planilha CSV** gera a grade com cabeçalho, CHD, CHN e CH calculados para conferência, abrindo no Excel ou Google Sheets. Esse arquivo não deve ser colado integralmente sobre as fórmulas do destino. O botão Exportar CSV do histórico continua gerando uma lista simples, distinta da grade mensal. Não há escrita automática na planilha real.
-
-Verificações adicionais: plantão no primeiro e último dia do mês, fevereiro bissexto, separação das funções, agrupamento por motivo/substituído, horas diurnas e noturnas e conflitos. A cópia foi validada localmente; não foi feito teste de colagem na planilha compartilhada.
-
-Teste automatizado da grade: `node tests/monthly.test.cjs`.
-
-## Importação em lote
-
-Em Importar profissionais em lote, cole as quatro colunas copiadas de uma planilha ou abra TXT/CSV/TSV em UTF-8. Cabeçalhos aceitos: MAT/MATRÍCULA, NOME/PROFISSIONAL DE ENFERMAGEM, CATEGORIA/FUNÇÃO e COOPERATIVA. O aplicativo apresenta uma prévia e só salva ao clicar em Importar cadastros novos. Arquivos Excel devem ter as células copiadas como texto ou ser exportados em CSV; arquivos XLSX não são lidos diretamente.
-
-Matrícula é preservada como texto, inclusive zeros à esquerda. ENFERMEIRA é padronizado para ENFERMEIRO; TECNICO/TÉCNICO para TÉCNICO DE ENFERMAGEM; COPEN para COOPEN. Esses ajustes aparecem na conferência. Linhas inválidas e cadastros repetidos não são importados. A identidade considera nome, matrícula, cooperativa e função, ignorando diferenças de acentuação, caixa e espaços. Nomes iguais com vínculos diferentes ficam separados no seletor. Não altera registros históricos nem substitui cadastros existentes. Importar novamente a mesma lista não cria duplicados.
-
-Use Buscar profissional para filtrar nome, matrícula ou cooperativa. Ao selecionar um cadastro importado, os metadados são preenchidos. Na grade mensal é usado o nome original, sem as informações adicionais do seletor.
-
-A lista pessoal não está nos arquivos publicados: a importação acontece no navegador do usuário. Para transferir os cadastros ao Android, faça backup JSON no Windows e restaure no Android, lembrando que a restauração substitui os dados locais. Use o mesmo endereço do site para manter os registros durante atualizações.
-
-Testes: `node tests/professionals.test.cjs` e `node tests/monthly.test.cjs`.
-
-## Busca, substituição e calendário
-
-A busca do cooperado aceita vários termos em qualquer ordem e ignora acentos. Os resultados mostram nome e vínculo; toque em um resultado para selecionar. A lista mostra até 8 cartões e 30 opções por busca; refine o texto para encontrar outros cadastros. POR QUEM agora possui busca e seleção de nomes cadastrados; nomes de registros antigos permanecem disponíveis durante a edição.
-
-O calendário usa semana de segunda a domingo e apresenta um seletor de turno abaixo de cada data. Preencha um ou vários meses antes de salvar. Opções: M, T, MT, N, 9C, MN, TN e MTN; as combinações são salvas no formato anterior para preservar backups e cálculo de horas. Para remover um plantão local, edite o registro e selecione — no dia; para retirar todos os dias de um mês, use Limpar este mês. Registros exigem pelo menos um plantão.
-
-## Planilha compartilhada
-
-O Netlify continua funcionando localmente, sem acesso de edição ao Google Sheets. A integração preparada em [google-apps-script](google-apps-script/README.md) usa um aplicativo Google Apps Script executando como o usuário autenticado. Exige instalação e autorização na conta do usuário e validação em cópia da planilha antes do uso real. Nenhuma alteração foi enviada à planilha compartilhada durante o desenvolvimento.
-
-A conexão permite ler as abas mensais, inserir um turno em um dia de uma linha existente ou vazia e excluir somente o conteúdo da célula de turno. Exibe conferência e exige confirmação. Não altera fórmulas, totais ou a estrutura das abas; recusa conflitos e valores que mudaram desde a conferência. Um turno combinado ocupa uma única célula: excluir essa célula remove todo o código combinado. O armazenamento do aplicativo Google é distinto do Netlify; transfira cadastros por backup.
-
-Para gerar o arquivo HTML do Apps Script após alterações, execute `python3 scripts/build_apps_script.py`. Validações: `node tests/calendar.test.cjs`, `node tests/shared-sheet.test.cjs`, além dos testes anteriores. A validação do Google Sheets usa uma simulação; a integração real ainda requer instalação pelo usuário.
-
-## Lista independente de POR QUEM
-
-O campo POR QUEM usa somente `replacements`, um cadastro separado de profissionais substituídos. Na seção Cadastro separado — POR QUEM, cole um nome por linha ou abra TXT, confira e importe. A lista principal de cooperados não alimenta esse campo. Busca ignora acentos e caixa. Reimportar não duplica nomes. Nomes históricos fora da lista continuam disponíveis quando o registro é editado. A lista separada faz parte do backup JSON; backups anteriores sem esse campo continuam válidos, com lista inicialmente vazia. Os nomes pessoais não são incluídos nos arquivos publicados. Teste: `node tests/replacements.test.cjs`.
-
-A área Copiar para a planilha está antes do formulário e das importações. Um botão fixo no rodapé copia a grade configurada, mostrando mês e função; ele copia somente registros salvos, com o mesmo formato do botão principal. A grade de conferência pode ser expandida.
-
-## Calendário conectado à planilha
-
-Na implantação Google Apps Script, o calendário oferece o modo Planilha compartilhada. Escolha a aba mensal e Carregar / atualizar mês. Os perfis presentes nos plantões carregados aparecem na busca mesmo sem cadastro local. Ao selecionar o profissional, os turnos da planilha aparecem como botões verdes nos dias, incluindo plantões de motivos diferentes. Selecione um turno novo (amarelo), preencha motivo/substituído no formulário e toque em Inserir no dia; confira a confirmação. Toque em um turno verde para excluir somente aquela célula, com confirmação do motivo, data e pessoa substituída.
-
-Após a resposta de inserção/exclusão, o calendário relê a aba. Uma falha de leitura impede novos envios até atualizar. A camada de escrita confere o conteúdo atual e bloqueia sobreposições em outras linhas do mesmo nome/matrícula/cooperativa/função. Códigos especiais em outro plantão do mesmo dia exigem conferência manual. Não sobrescreve fórmulas nem turnos existentes. Se houver várias linhas idênticas, a inserção exige revisão da planilha.
-
-Novas seleções da planilha ficam separadas por profissional e só são enviadas após confirmação; não são registros locais nem cópias dos turnos existentes. O modo Registros deste dispositivo mantém o fluxo local anterior. O botão Copiar linhas continua copiando somente registros locais salvos. A integração real usa a URL do Apps Script; a publicação Netlify não recebe acesso ao Google automaticamente.
-
-Atualizações desta integração exigem substituir Code.gs e App.html e publicar Nova versão na mesma implantação. Os testes de interface móvel usaram o adaptador de planilha simulado; a conexão autenticada na conta do usuário ainda precisa ser validada na cópia de teste.
+Verificações de navegador exercitaram inserção local, buscas, calendário em vários meses, ferramentas recolhidas, importações e fluxo Google simulado de leitura/escrita/exclusão. A organização foi verificada com 933 cadastros e 2.000 registros fictícios. Isso verifica o comportamento, sem estabelecer um tempo de resposta da implantação Google real.

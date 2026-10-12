@@ -31,3 +31,9 @@ Quando o bloco de técnicos tem os cabeçalhos dos dias vazios, usa a sequência
 No aplicativo Google, escolha Planilha compartilhada no calendário, selecione a aba e Carregar / atualizar mês. Escolha o profissional na busca superior: os dias exibem seus plantões reais carregados da aba. Turno verde: existente; seleção amarela: nova, ainda não enviada. Use Inserir no dia para confirmar uma nova célula; toque no turno verde para confirmar sua exclusão. Cada operação relê a planilha e atualiza o calendário. O carregamento também inclui perfis dos profissionais encontrados nos plantões, sem exigir importação prévia.
 
 O modo local e a cópia CSV/grade continuam independentes da planilha remota. Se houver erro de leitura, atualize novamente antes de inserir. O script impede sobreposições entre linhas do mesmo vínculo e não sobrescreve células preenchidas. Para esta versão, atualize os dois arquivos Code.gs e App.html e publique Nova versão. A validação automatizada usou um serviço simulado, sem alterar a planilha do usuário.
+
+## Organização e velocidade
+
+O fluxo principal é profissional → justificativa/POR QUEM → calendário. O mês atual carrega automaticamente e selecionar outra aba atualiza a grade. Histórico, importações e exportação ficam recolhidos em Cadastros e ferramentas. A escrita devolve a grade atualizada em sua resposta, reduzindo uma chamada adicional do navegador. Dados de busca são preparados uma vez e reutilizados; listas longas não são renderizadas antes de abrir suas ferramentas.
+
+O reaproveitamento compara profissional/vínculo, motivo e POR QUEM, permitindo matrícula ausente ou “-”. Se há linhas iguais anteriores, procura a primeira com o dia livre; se todas estão preenchidas, bloqueia em vez de criar outra linha igual. Matrículas preenchidas diferentes, cooperativas e funções não são misturadas.

@@ -10,3 +10,10 @@ values[19][5]='2';assert.throws(()=>context.readMonthlySheet('OUT'),/Dias fora/)
 console.log('PASS: técnicos sem cabeçalho próprio, dia 1/31, inserção na coluna correta e rejeição de cabeçalhos parciais ou inválidos.');
 
 values[10][5]='1';values[14].splice(0,5,'123','Teste','COOPEN','OUTRO MOTIVO','');values[14][8]='T';assert.throws(()=>context.planMonthlyInsertion({...payload,date:'2026-10-04',code:'MT'}),/sobreposto/);console.log('PASS: bloqueio de sobreposição entre linhas e motivos diferentes do mesmo profissional.');
+// A linha deve ser reaproveitada quando a matrícula é vazia/desatualizada,
+// e duplicatas preexistentes não devem causar criação de terceira linha.
+values[12][3]='ROTINA';values[14].fill('');values[15].splice(0,5,'-','Teste','COOPEN','ROTINA','');
+const reuse=context.planMonthlyInsertion({...payload,date:'2026-10-05',meta:['','teste','COOPEN',' rotina ','']});assert.equal(reuse.row,13);assert.equal(reuse.newMeta,null);const applied=context.changeMonthlyShift(reuse);assert.equal(values[12][9],'M');assert.equal(values[15][1],'Teste');assert(applied.snapshot.records.some(r=>r.row===13&&r.date==='2026-10-05'));
+values[12][10]='N';const duplicateReuse=context.planMonthlyInsertion({...payload,date:'2026-10-06',code:'M'});assert.equal(duplicateReuse.row,16);assert.equal(duplicateReuse.newMeta,null);context.changeMonthlyShift(duplicateReuse);assert.equal(values[15][10],'M');
+const differentReplacement=context.planMonthlyInsertion({...payload,date:'2026-10-07',meta:['123','Teste','COOPEN','ROTINA','Outra pessoa']});assert(differentReplacement.newMeta);assert.notEqual(differentReplacement.row,13);assert.notEqual(differentReplacement.row,16);
+console.log('PASS: reaproveitamento por profissional/motivo/POR QUEM, matrícula ausente, duplicatas existentes e calendário retornado pela escrita.');
