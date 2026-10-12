@@ -2,6 +2,12 @@
 
 Aplicativo pessoal para organizar acionamentos de cooperados e editar plantões em uma grade mensal Google Sheets.
 
+## Instalar no Android
+
+[Baixar aplicativo Android (APK)](https://raw.githubusercontent.com/aemonbborn/Gest-o-OBA/main/downloads/gestao-emergencia-adulto.apk). Android 8 ou superior. Instale e, na primeira abertura, cole o link `/exec` da sua implantação Apps Script. O aplicativo salva a conexão e abre sua gestão automaticamente nas próximas aberturas pelo ícone.
+
+Esta versão tem configuração nativa e abre a gestão com Chrome Custom Tabs ou o navegador padrão para manter a autorização Google. Pode exibir controles do navegador e precisa de internet para a planilha. [Instalação, funcionamento e testes](android/README.md).
+
 ## Fluxo principal
 
 1. Busque e escolha o profissional. Nome, matrícula, cooperativa e função distinguem vínculos diferentes.

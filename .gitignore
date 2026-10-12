@@ -1,0 +1,6 @@
+android/build/
+*.jks
+*.keystore
+*.pass
+*.idsig
+__pycache__/

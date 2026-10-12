@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Gestão Emergência Adulto</string>
+    <string name="default_program_url"></string>
+    <string name="intro">Seu aplicativo de plantões conectado à planilha.</string>
+    <string name="connection_label">Link de conexão</string>
+    <string name="connection_hint">https://script.google.com/macros/s/…/exec</string>
+    <string name="connection_help">Na primeira abertura, cole o link do programa que funciona no seu computador. Você encontra esse link no Apps Script, em Implantar → Gerenciar implantações → URL do aplicativo da Web.</string>
+    <string name="paste">Colar link</string>
+    <string name="save_open">Salvar e abrir gestão</string>
+    <string name="open">Abrir gestão</string>
+    <string name="edit_connection">Alterar conexão</string>
+    <string name="help">Ajuda</string>
+    <string name="google_account_hint">Use no Google a mesma conta que tem acesso à planilha. A tela de gestão abre com o navegador do celular para manter seu login.</string>
+    <string name="saved">Link de conexão salvo. Ao abrir o aplicativo pelo ícone, sua gestão abre automaticamente.</string>
+    <string name="missing_browser">Ative ou instale o Chrome para abrir sua gestão. Depois volte e toque em Abrir gestão.</string>
+    <string name="clipboard_empty">Copie o link do programa antes de tocar em Colar link.</string>
+    <string name="help_text">1. No computador, copie a URL do aplicativo da Web em Apps Script → Implantar → Gerenciar implantações.\n\n2. Envie o link para seu celular e copie. Cole aqui uma única vez.\n\n3. Entre no Google com a conta que tem permissão na planilha.\n\nOs plantões vêm da planilha conectada. Cadastros salvos no navegador do computador podem ser transferidos usando Backup e restauração no programa.\n\nEsta versão Android instala um ícone próprio e abre a gestão em uma aba do navegador. A tela pode mostrar controles do Chrome. Atualizações da sua implantação Google aparecem sem reinstalar o APK.</string>
+</resources>
