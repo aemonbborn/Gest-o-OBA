@@ -1,6 +1,8 @@
 (function(root){
  const codes=['M','T','MT','N','9C','MN','TN','MTN'],limit=500;
  const clean=v=>String(v).trim().replace(/\s+/g,' '),norm=v=>clean(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase();
+ const cellText=v=>clean(v).replace(/^\*\*(.*)\*\*$/,'$1').replace(/^__(.*)__$/,'$1');
+ const title='PLANTOES NAO IDENTIFICADOS REGISTRADOS NA ESCALA DO COORDENADOR';
  function dateOf(value,month){
   let date=clean(value),match;
   if((match=date.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{4}))?$/)))date=(match[3]||month.slice(0,4))+'-'+match[2].padStart(2,'0')+'-'+match[1].padStart(2,'0');
@@ -23,13 +25,15 @@
   if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(month))throw Error('Selecione um mês no calendário antes de conferir.');
   const entries=[],items=[],seen=new Set();
   for(const [index,raw] of text.replace(/^\ufeff/,'').split(/\r?\n/).entries()){
-   if(!raw.trim()||/^[\s|:-]+$/.test(raw))continue;const entry={line:index+1,raw:raw.trim()};
+   if(!raw.trim()||/^[\s|:-]+$/.test(raw)||norm(raw.replace(/[|;,\t"*_]/g,' '))===title)continue;const entry={line:index+1,raw:raw.trim()};
    try{const fields=columns(raw);let name,date,code;
-    if(fields.length===6){[date,name,,code]=fields;}
+    if(fields.length===8){[date,name,code]=fields;}
+    else if(fields.length===6){[date,name,,code]=fields;}
     else if(fields.length===3){[name,date,code]=fields;}
-    else throw Error('Formato não reconhecido ('+fields.length+' colunas). Use DATA; NOME; SETOR; TURNO; FUNÇÃO; COOPERATIVA ou NOME; DATA; TURNO.');
+    else throw Error('Formato não reconhecido ('+fields.length+' colunas). Use a tabela de seis ou oito colunas, ou NOME; DATA; TURNO.');
+    name=cellText(name);date=cellText(date);code=cellText(code);
     if(['NOME','PROFISSIONAL','PROFISSIONAL DE ENFERMAGEM'].includes(norm(name))&&norm(date)==='DATA'&&['TURNO','TURNOS'].includes(norm(code)))continue;
-    entry.name=clean(name);entry.date=dateOf(date,month);entry.code=norm(code);
+    entry.name=name;entry.date=dateOf(date,month);entry.code=norm(code);
     if(!entry.name||entry.name.length>240)throw Error('Informe o nome completo, com até 240 caracteres.');
     if(!codes.includes(entry.code))throw Error('Turno inválido. Use M, T, MT, N, 9C, MN, TN ou MTN.');
     const key=JSON.stringify([norm(entry.name),entry.date,entry.code]);
@@ -37,7 +41,7 @@
    }catch(error){entry.error=error.message;}
    entries.push(entry);if(entries.length>limit)throw Error('Confira até '+limit+' linhas por vez.');
   }
-  if(!entries.length)throw Error('Cole a tabela DATA; NOME; SETOR; TURNO; FUNÇÃO; COOPERATIVA ou a lista NOME; DATA; TURNO.');
+  if(!entries.length)throw Error('Cole os plantões da tabela de seis ou oito colunas, ou a lista NOME; DATA; TURNO.');
   return {entries,items};
  }
  const targetKey=r=>JSON.stringify([r.sheet,r.row,r.date]);

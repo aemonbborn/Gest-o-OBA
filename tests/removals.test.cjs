@@ -27,4 +27,17 @@ assert.equal(table.entries.length,1);assert.equal(table.items.length,1);assert.e
 assert.equal(R.parse('01/10/2026\tNome Teste\t\tT\t\t','2026-10').items.length,1);
 assert.equal(R.parse('| 01/10/2026 | Nome Teste | Setor | X | Função | Cooperativa |','2026-10').items.length,0);
 assert.equal(R.parse('31/11/2026;Nome Teste;Setor;N;Função;Cooperativa','2026-10').items.length,0);
+const banner='PLANTÕES NÃO IDENTIFICADOS REGISTRADOS NA ESCALA DO COORDENADOR';
+const eightHeader=['DATA','NOME','TURNO','MOTIVO','POR QUEM - JUSTIFICATIVA','SETOR','FUNÇÃO','COOPERATIVA'];
+for(const delimiter of ['\t',';',',','|']){
+ const format=row=>delimiter==='|'?'| '+row.join(' | ')+' |':row.join(delimiter);
+ const data=[['**'+banner+'**',...Array(7).fill('')],eightHeader.map(cell=>'**'+cell+'**'),['01/10/2026','Nome Teste','T','Justificativa externa','Pessoa externa','Setor externo','Função externa','Cooperativa externa'],['**02/10/2026**','**Outro Nome**','**N**','','','','','']];
+ const parsed=R.parse(data.map(format).join('\n'),'2026-10');assert.equal(parsed.entries.length,2);assert.equal(parsed.items.length,2);
+ assert.deepEqual(parsed.items.map(item=>[item.date,item.name,item.code]),[['2026-10-01','Nome Teste','T'],['2026-10-02','Outro Nome','N']]);
+ assert(parsed.items.every(item=>!('reason' in item)&&!('replacement' in item)&&!('cooperative' in item)));
+}
+const withSeparator=R.parse(`| **${banner}** | | | | | | | |\n| :---: | --- | --- | --- | --- | --- | --- | --- |\n| **DATA** | **NOME** | **TURNO** | **MOTIVO** | **POR QUEM - JUSTIFICATIVA** | **SETOR** | **FUNÇÃO** | **COOPERATIVA** |\n| 01/10/2026 | Nome Teste | T | Motivo | Por quem | Setor | Função | Coop |`,'2026-10');
+assert.equal(withSeparator.items.length,1);assert.equal(withSeparator.items[0].line,4);
+assert.equal(R.parse(banner+'\n01/10/2026;Nome Teste;T;Motivo;Por quem;Setor;Função;Coop','2026-10').items.length,1);
+assert.equal(R.parse('01/10/2026;Nome Teste;X;Motivo;Por quem;Setor;Função;Coop','2026-10').items.length,0);
 console.log('PASS: lista colada/CSV/TXT, nomes completos, datas brasileiras e ISO, ano/mês de referência, duplicados, limites e rejeição de datas ou turnos inválidos.');
