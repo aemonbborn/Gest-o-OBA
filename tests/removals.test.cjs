@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict'),R=require('../removals.js');
+const result=R.parse('\ufeffNOME\tDATA\tTURNO\nAna Teste\t15/10/2026\tN\nANA TESTE;2026-10-15;n\nOutro Nome | 16/11/2026 | MT\nTerceiro Nome 17/10 M\nQuarto Nome;18;9C\nInválido;31/11/2026;N\nSem turno;19/10/2026;X','2026-10');
+assert.equal(result.entries.length,7);assert.equal(result.items.length,4);assert.equal(result.entries.filter(e=>e.duplicate).length,1);assert.equal(result.entries.filter(e=>e.error).length,2);
+assert.deepEqual(result.items.map(e=>[e.date,e.code]),[['2026-10-15','N'],['2026-11-16','MT'],['2026-10-17','M'],['2026-10-18','9C']]);
+assert.equal(R.parse('"Nome, com vírgula",01/02/2028,N','2028-02').items[0].name,'Nome, com vírgula');
+assert.equal(R.parse('"Nome ""Teste""";29/02/2028;MTN','2028-02').items[0].name,'Nome "Teste"');
+assert.equal(R.parse('Ána Teste;01/10/2026;M\nana teste;1/10/2026;m','2026-10').items.length,1);
+assert.equal(R.parse('Nome;29/02/2026;N','2026-02').items.length,0);
+assert.equal(R.parse('Nome;2026-10-32;N','2026-10').items.length,0);
+assert.equal(R.parse('Nome;01/10/2026;M;Outro dado','2026-10').items.length,0);
+assert.equal(R.parse('"Nome;01/10/2026;N','2026-10').items.length,0);
+assert.throws(()=>R.parse('','2026-10'),/Cole/);assert.throws(()=>R.parse('Nome;1;N','2026-13'),/mês/);
+assert.throws(()=>R.parse(Array.from({length:501},(_,i)=>`Nome ${i};1;N`).join('\n'),'2026-10'),/500/);
+assert.throws(()=>R.parse('a'.repeat(1024*1024+1),'2026-10'),/1 MB/);
+assert.notEqual(R.targetKey({sheet:'OUT',row:13,date:'2026-10-01'}),R.targetKey({sheet:'NOV',row:13,date:'2026-11-01'}));
+console.log('PASS: lista colada/CSV/TXT, nomes completos, datas brasileiras e ISO, ano/mês de referência, duplicados, limites e rejeição de datas ou turnos inválidos.');

@@ -14,6 +14,22 @@ Na implantação Google Apps Script, o mês atual carrega automaticamente quando
 
 No modo local, preencha os dias e use Salvar plantões. É possível selecionar vários meses antes de salvar; — retira a seleção de um dia. Turnos M, T, MT, N, 9C, MN, TN e MTN preservam compatibilidade com os backups anteriores.
 
+## Remover plantões por lista
+
+No calendário conectado, abra **Remover plantões por lista**. Cole três colunas copiadas do Excel, ou linhas de texto/CSV/TXT no formato:
+
+```text
+NOME; DATA; TURNO
+Nome do profissional; 15/10/2026; N
+Outro profissional; 01/11/2026; MT
+```
+
+Use **Conferir lista na planilha**, revise os registros e clique em **Remover selecionados**. A primeira conferência apenas consulta a planilha e atualiza o calendário. Um registro único sem fórmula é marcado automaticamente; quando há mais de um com o mesmo nome, data e turno, escolha pela matrícula, cooperativa, função, justificativa e POR QUEM. **Ver no calendário** carrega o mês e o profissional; as células selecionadas para remoção aparecem em vermelho quando correspondem aos dados conferidos.
+
+Aceita até 500 linhas por conferência e 500 células por remoção, inclusive em vários meses. Nomes completos são comparados sem distinguir maiúsculas ou acentos; não usa aproximação por parte do nome. O turno precisa ser exatamente o conteúdo da célula: M não remove MT. Linhas repetidas são consideradas uma única vez; erros e registros não encontrados aparecem na prévia. Só os registros marcados serão removidos, após confirmação. Datas DD/MM/AAAA ou AAAA-MM-DD permitem consultar outras abas; DD/MM usa o ano do calendário e um dia isolado usa o mês carregado. A aba precisa corresponder ao ano informado.
+
+A remoção mantém os dados cadastrais, os outros plantões e as fórmulas. O servidor confere todos os alvos antes da primeira escrita e valida o identificador da confirmação. Alterações no turno, nos metadados ou na função bloqueiam o lote. As escritas são agrupadas por aba; uma falha do serviço pode deixar remoções parciais e é sinalizada para nova conferência. Instale **Code.gs e App.html** atualizados e publique **Nova versão** na mesma implantação. O cabeçalho identifica esta função por **remoção lista-1**.
+
 ## Cadastros e ferramentas
 
 Histórico, importações, cópia/CSV, backups e configuração da conexão ficam em uma área recolhida, acessível pelo botão superior. Histórico e exportação são renderizados sob demanda. O histórico apresenta até 50 resultados por busca; refine o filtro para encontrar os demais.
@@ -64,7 +80,11 @@ node tests/calendar.test.cjs
 node tests/replacements.test.cjs
 node tests/shared-sheet.test.cjs
 node tests/shared-layouts.test.cjs
+node tests/removals.test.cjs
+node tests/shared-removals.test.cjs
 ```
+
+O fluxo de remoção também possui um teste de navegador com planilha simulada: `node tests/removals-browser.cjs`, com Playwright disponível e Chromium instalado. Defina `CHROMIUM_PATH` se o executável estiver em outro caminho. Ele verifica os formatos de tela Android/Windows, prévia, homônimos, calendário, troca de mês, cancelamento, conflito e remoção confirmada, sem acessar a conta Google.
 
 Verificações de navegador exercitaram inserção local, buscas, calendário em vários meses, ferramentas recolhidas, importações e fluxo Google simulado de leitura/escrita/exclusão. A organização foi verificada com 933 cadastros e 2.000 registros fictícios. Isso verifica o comportamento, sem estabelecer um tempo de resposta da implantação Google real.
 

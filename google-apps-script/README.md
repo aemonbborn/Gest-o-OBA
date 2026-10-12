@@ -14,7 +14,7 @@ O script identifica abas JAN, FEV, MAR, ABRIL, MAIO, JUN, JUL, AGT, SET, OUT, NO
 
 Inserção preenche uma célula de um dia em linha existente com os mesmos metadados, ou uma linha vazia do bloco. Não cria novas linhas estruturais, não sobrescreve turnos/fórmulas nem mexe nos totais. Exclusão limpa apenas o turno da célula, mantendo a linha e os metadados. Mudanças desde a conferência impedem o envio. Alterações manuais simultâneas no Google Sheets não são cobertas pelo bloqueio entre execuções do script; confira em caso de edição concorrente.
 
-Os testes automatizados usam um modelo simulado de planilha e não substituem a validação na cópia real. Este script ainda não foi instalado, autorizado ou executado no Google Sheets do usuário. A opção de conexão é mostrada apenas quando o app roda pelo Apps Script.
+Os testes automatizados usam um modelo simulado de planilha e não substituem a validação na cópia real. A instalação e autorização são realizadas pelo usuário na conta Google; os testes executados aqui não acessam essa conta. A opção de conexão é mostrada apenas quando o app roda pelo Apps Script.
 
 App.html é gerado por `python3 scripts/build_apps_script.py` a partir do aplicativo. Execute esse comando após mudanças de interface.
 
@@ -53,3 +53,13 @@ O cabeçalho do aplicativo mostra “conexão lote-4”. Uma divergência de con
 ## Catálogo ampliado e continuidade
 
 Preencher por escala inclui 24×48/24×72 (MTN), 5×2, 6×1, 4×2 e ciclo personalizado. A mesma Data-base deve ser mantida ao gerar meses diferentes, para preservar a fase. A carga é calculada pelo turno escolhido, e não por uma jornada padrão suposta. As referências lidas e os limites da pesquisa estão em docs/escalas-e-referencias.md. Atualize App.html para a interface e preserve Code.gs atualizado para o envio de MTN e lotes.
+
+## Remoção por lista
+
+Atualize Code.gs e App.html e publique Nova versão. O cabeçalho passa a mostrar **remoção lista-1**, além da versão do envio de lotes. Em **Remover plantões por lista**, cole NOME; DATA; TURNO (ou três colunas do Excel/TXT/CSV) e confira até 500 linhas. Datas completas permitem consultar abas de meses diferentes da mesma planilha; o ano de cada aba é validado. Datas sem ano usam o ano do calendário, e apenas o dia usa o mês carregado.
+
+findMonthlyShiftsForRemoval só consulta dados: busca nome completo normalizado e turno exato, informa múltiplos resultados e protege células com fórmula. A prévia marca registros únicos automaticamente e exige seleção explícita entre múltiplos resultados. Cada candidato apresenta matrícula, cooperativa, função, justificativa, POR QUEM, aba e linha; Ver no calendário atualiza a aba e destaca seleções compatíveis em vermelho. Alterar a lista descarta a conferência anterior.
+
+planMonthlyDeletions relê e valida todos os alvos selecionados e devolve um identificador de confirmação. Após confirmação do usuário, changeMonthlyDeletions revalida todo o lote sob bloqueio antes de limpar células com RangeList.clearContent, agrupadas por aba. Só as células dos dias são limpas, sem remover linhas ou metadados, sem dividir turnos combinados e sem alterar fórmulas/totais. Alvos repetidos, fora da grade, alterados ou com fórmulas bloqueiam o lote antes da primeira escrita. Google Sheets não oferece transação entre essas chamadas: uma falha do serviço durante a limpeza pode deixar remoções parciais, informadas no erro. O aplicativo descarta a prévia, relê o calendário e pede nova conferência da lista.
+
+Testes: node tests/removals.test.cjs, node tests/shared-removals.test.cjs e, com Playwright/Chromium, node tests/removals-browser.cjs. A validação da nova remoção usa planilhas simuladas; teste primeiro na cópia real.
