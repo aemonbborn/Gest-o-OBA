@@ -7,7 +7,8 @@ const MONTHS_={JAN:1,FEV:2,MAR:3,ABRIL:4,MAIO:5,JUN:6,JUL:7,AGT:8,SET:9,OUT:10,N
 const CODES_=['M','T','MT','N','9C','MN','TN','MTN'];
 const INTEGRATION_VERSION_='lote-4';
 const REMOVAL_VERSION_='lista-1';
-function getIntegrationInfo(){return {version:INTEGRATION_VERSION_,removalVersion:REMOVAL_VERSION_};}
+const EDIT_VERSION_='turno-1';
+function getIntegrationInfo(){return {version:INTEGRATION_VERSION_,removalVersion:REMOVAL_VERSION_,editVersion:EDIT_VERSION_};}
 function listMonthlySheets(){return livro_().getSheets().map(s=>s.getName()).filter(n=>MONTHS_[n]);}
 function grade_(name){if(!MONTHS_[name])throw Error('Selecione uma aba mensal válida.');const s=livro_().getSheetByName(name);if(!s)throw Error('Aba não encontrada.');const values=s.getDataRange().getDisplayValues();let year=null;for(const row of values.slice(0,12)){for(const cell of row){const match=String(cell).match(/\b(20\d{2})\b/);if(match)year=Number(match[1]);}}if(!year)throw Error('O título desta aba precisa conter o ano, por exemplo OUTUBRO DE 2026.');
 const blocks=[];for(let i=0;i<values.length;i++){const row=values[i];if(norm_(row[0])==='MAT'&&norm_(row[1])==='NOME'&&norm_(row[2])==='COOPERATIVA'&&norm_(row[3])==='MOTIVO'&&norm_(row[4])==='POR QUEM'){let category=null;for(let k=i-1;k>=Math.max(0,i-5);k--){const heading=norm_(values[k][0]);if(heading.includes('ENFERMEIROS')){category='ENFERMEIRO';break;}if(heading.includes('TECNICOS')){category='TÉCNICO DE ENFERMAGEM';break;}}if(!category)throw Error('Não foi possível identificar a função do bloco na linha '+(i+1));blocks.push({header:i+1,start:i+2,end:values.length,category});}}
@@ -30,6 +31,21 @@ function planInsertion_(g,p){
  return {sheet:p.sheet,row,date:p.date,expected:'',expectedMeta:meta,code:p.code,newMeta:targets.length?null:p.meta,category:p.category};
 }
 function changeMonthlyShift(p){const lock=LockService.getScriptLock();lock.waitLock(15000);try{const g=grade_(p.sheet);if(p.code!==''&&!CODES_.includes(p.code))throw Error('Turno não reconhecido.');const cell=cell_(g,p.row,p.date);const meta=g.s.getRange(p.row,1,1,5).getDisplayValues()[0];if(!Array.isArray(p.expectedMeta)||p.expectedMeta.length!==5||meta.some((v,i)=>v!==p.expectedMeta[i])||cell.getDisplayValue()!==p.expected)throw Error('A planilha mudou desde a conferência. Recarregue antes de alterar.');if(cell.getFormula())throw Error('Esta célula contém fórmula e não será alterada.');if(p.code&&p.expected)throw Error('Não é permitido sobrescrever um plantão existente.');if(!p.code&&!p.expected)throw Error('A célula já está vazia.');if(p.code)assertShiftAvailable_(g,p.row,p.date,p.code,p.newMeta||meta);if(p.newMeta){const plan=planInsertion_(g,{sheet:p.sheet,date:p.date,code:p.code,meta:p.newMeta,category:p.category});if(plan.row!==p.row)throw Error('A linha disponível mudou; confira novamente.');for(let i=0;i<5;i++){const range=g.s.getRange(p.row,i+1);if(range.getFormula())throw Error('A linha contém fórmula nos dados cadastrais.');}g.s.getRange(p.row,1,1,5).setNumberFormat('@').setValues([p.newMeta]);}if(p.code)cell.setValue(p.code);else cell.clearContent();SpreadsheetApp.flush();return {ok:true,snapshot:readMonthlySheet(p.sheet)};}finally{lock.releaseLock();}}
+
+/** Altera somente o turno de uma célula existente; os metadados nunca são escritos. */
+function updateMonthlyShift(p){
+ if(!p||!MONTHS_[p.sheet]||!Number.isInteger(p.row)||typeof p.expected!=='string'||!p.expected||!CODES_.includes(p.code)||!Array.isArray(p.expectedMeta)||p.expectedMeta.length!==5||p.expectedMeta.some(v=>typeof v!=='string')||!['ENFERMEIRO','TÉCNICO DE ENFERMAGEM'].includes(p.category)||p.newMeta)throw Error('Confira o plantão e escolha um turno válido.');
+ const lock=LockService.getScriptLock();lock.waitLock(15000);
+ try{
+  const g=grade_(p.sheet),cell=cell_(g,p.row,p.date),meta=g.values[p.row-1].slice(0,5),category=g.blocks.find(b=>p.row>=b.start&&p.row<=b.end).category;
+  if(category!==p.category||meta.some((v,i)=>v!==p.expectedMeta[i])||cell.getDisplayValue()!==p.expected)throw Error('O plantão mudou desde a conferência. Atualize o calendário e abra o plantão novamente.');
+  if(cell.getFormula())throw Error('Esta célula contém fórmula e não será alterada.');
+  if(p.code===p.expected)throw Error('Escolha um turno diferente do atual.');
+  assertShiftAvailable_(g,p.row,p.date,p.code,meta);
+  try{cell.setValue(p.code);SpreadsheetApp.flush();}catch(e){throw Error('Não foi possível confirmar a alteração. Atualize o calendário e confira o turno antes de tentar novamente. '+e.message);}
+  return {ok:true,snapshot:readMonthlySheet(p.sheet)};
+ }finally{lock.releaseLock();}
+}
 
 function getReplacementNames(){const sheet=livro_().getSheetByName('DADOS');if(!sheet)throw Error('Aba DADOS não encontrada para a lista POR QUEM.');const header=norm_(sheet.getRange(2,31).getDisplayValue());if(!['PROFISSIONAL DE ENFERMAGEM','NOME','POR QUEM'].includes(header))throw Error('O cabeçalho DADOS!AE2 não corresponde à lista POR QUEM.');const count=Math.max(0,sheet.getLastRow()-2);if(!count)return [];const values=sheet.getRange(3,31,count,1).getDisplayValues();const names=[],seen={};for(const row of values){const name=String(row[0]||'').trim().replace(/\s+/g,' '),key=norm_(name);if(name&&name.length<=120&&!seen[key]){seen[key]=true;names.push(name);}}return names.sort((a,b)=>a.localeCompare(b,'pt-BR'));}
 function planMonthlyInsertions(p){const plan=batchPlan_(grade_(p.sheet),p);return {...plan,confirmation:batchFingerprint_(plan.changes)};}

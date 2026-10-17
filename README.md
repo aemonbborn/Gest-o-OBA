@@ -16,11 +16,21 @@ Esta versão tem configuração nativa e abre a gestão com Chrome Custom Tabs o
 
 No computador, formulário e calendário ficam lado a lado; no celular, o formulário aparece primeiro. A navegação superior dá acesso ao calendário. Dados do vínculo e observações ficam recolhidos e são preenchidos pelo cadastro. Dados incompletos abrem essa seção para revisão.
 
-Na implantação Google Apps Script, o mês atual carrega automaticamente quando sua aba está disponível. Trocar de aba carrega o calendário correspondente. Os turnos existentes aparecem em verde; seleções novas aparecem em amarelo. Use Inserir no dia e confirme para enviar; toque em um turno verde para confirmar exclusão. Os perfis da planilha também aparecem na busca, sem exigir importação prévia. A resposta de escrita inclui a grade atualizada, reduzindo uma chamada separada de recarga.
+Na implantação Google Apps Script, o mês atual carrega automaticamente quando sua aba está disponível. Trocar de aba carrega o calendário correspondente. Os turnos existentes aparecem em verde; seleções novas aparecem em amarelo. Use Inserir no dia e confirme para enviar; toque em um turno verde para abrir as opções de alteração e exclusão. Os perfis da planilha também aparecem na busca, sem exigir importação prévia. A resposta de escrita inclui a grade atualizada, reduzindo uma chamada separada de recarga.
 
 Na consulta mensal, **Cooperados com plantões no mês** lista cada nome uma vez, com a quantidade de células preenchidas. A busca filtra os nomes do mês carregado. Selecionar um cooperado mostra todos os seus plantões no calendário e, logo abaixo, a lista por data com justificativa, POR QUEM e dados do vínculo. Justificativas, cooperativas ou funções diferentes não dividem o nome na consulta; os vínculos continuam identificados nos detalhes e nas operações de inserção/exclusão. A lista apresenta todos os plantões, sem corte em 50 registros. A troca de mês e a atualização recompõem a relação; meses vazios e falhas de leitura limpam a consulta anterior. Para receber esta mudança, atualize apenas **App.html** e publique **Nova versão** na implantação existente.
 
 No modo local, preencha os dias e use Salvar plantões. É possível selecionar vários meses antes de salvar; — retira a seleção de um dia. Turnos M, T, MT, N, 9C, MN, TN e MTN preservam compatibilidade com os backups anteriores.
+
+## Alterar turno existente e buscar POR QUEM
+
+Toque em um turno verde no calendário ou em **Alterar turno** nos detalhes do cooperado. A janela mostra o registro exato, a data, o turno atual, a justificativa, o POR QUEM e o vínculo. Escolha o novo turno e use **Salvar alteração**. O botão fica desabilitado enquanto o turno for igual ao atual. **Cancelar** ou Escape fecha sem gravar; **Excluir plantão** exige a confirmação de exclusão.
+
+A edição altera somente a célula do turno, na mesma linha e data. Preserva justificativa, POR QUEM, matrícula, cooperativa, função e totais. O servidor relê a célula e os metadados sob bloqueio, recusa mudanças posteriores à abertura, fórmulas e sobreposição com outros plantões do mesmo vínculo. O calendário e os detalhes são atualizados após a operação; uma conferência anterior de remoção é descartada após editar. Uma falha de serviço pode ocorrer depois da escrita e exige conferir o turno recarregado.
+
+A busca **POR QUEM** apresenta até cinco prévias clicáveis ao digitar, com nomes da lista independente carregada da planilha e dos cadastros locais. Aceita palavras em qualquer ordem e ignora acentos/maiúsculas. A lista de seleção é limitada aos primeiros resultados e mantém o nome já escolhido ao refinar a busca; clicar em uma prévia seleciona o nome. **Sem substituição** limpa a escolha. Nenhum nome é copiado do cadastro de cooperados para essa busca.
+
+Esta atualização exige substituir **Code.gs e App.html**, salvar os dois e publicar **Nova versão** na mesma implantação. O cabeçalho identifica o suporte do servidor como **edição turno-1**. O backend de inserção continua rejeitando sobrescritas: a edição usa a função própria `updateMonthlyShift` e nunca recebe novos metadados.
 
 ## Remover plantões por lista
 
@@ -94,9 +104,12 @@ node tests/shared-sheet.test.cjs
 node tests/shared-layouts.test.cjs
 node tests/removals.test.cjs
 node tests/shared-removals.test.cjs
+node tests/shared-shift-edit.test.cjs
 ```
 
 A consulta por cooperado possui `node tests/monthly-cooperators-browser.cjs`, que valida nomes únicos, todos os vínculos/justificativas, mais de 50 registros, busca, sincronização com o formulário, calendário, troca/atualização/mês vazio e falha de leitura sem escrita.
+
+A edição de turnos e as prévias de POR QUEM são verificadas por `node tests/shift-editor-browser.cjs`, com o código real do servidor e uma planilha simulada, em telas de celular e computador.
 
 O fluxo de remoção também possui um teste de navegador com planilha simulada: `node tests/removals-browser.cjs`, com Playwright disponível e Chromium instalado. Defina `CHROMIUM_PATH` se o executável estiver em outro caminho. Ele verifica os formatos de tela Android/Windows, prévia, homônimos, calendário, troca de mês, cancelamento, conflito e remoção confirmada, sem acessar a conta Google.
 
