@@ -50,7 +50,17 @@ Use **Conferir lista na planilha**, revise os registros e clique em **Remover se
 
 Aceita até 500 linhas por conferência e 500 células por remoção, inclusive em vários meses. Nomes completos são comparados sem distinguir maiúsculas ou acentos; não usa aproximação por parte do nome. O turno precisa ser exatamente o conteúdo da célula: M não remove MT. Linhas repetidas são consideradas uma única vez; erros e registros não encontrados aparecem na prévia. Só os registros marcados serão removidos, após confirmação. Datas DD/MM/AAAA ou AAAA-MM-DD permitem consultar outras abas; DD/MM usa o ano do calendário e um dia isolado usa o mês carregado. A aba precisa corresponder ao ano informado.
 
-A remoção mantém os dados cadastrais, os outros plantões e as fórmulas. O servidor confere todos os alvos antes da primeira escrita e valida o identificador da confirmação. Alterações no turno, nos metadados ou na função bloqueiam o lote. As escritas são agrupadas por aba; uma falha do serviço pode deixar remoções parciais e é sinalizada para nova conferência. Instale **Code.gs e App.html** atualizados e publique **Nova versão** na mesma implantação. O cabeçalho identifica esta função por **remoção lista-1**.
+A remoção mantém os dados cadastrais, os outros plantões e as fórmulas. Após a confirmação na interface, o servidor relê a planilha e confere todos os alvos antes da primeira escrita. Alterações no turno, nos metadados ou na função bloqueiam o lote. As escritas são agrupadas por aba; uma falha do serviço pode deixar remoções parciais e é sinalizada para nova conferência. Instale **Code.gs e App.html** atualizados e publique **Nova versão** na mesma implantação. O cabeçalho identifica esta função por **remoção lista-1**.
+
+## Velocidade da integração
+
+A versão **rapido-1** reúne a validação e a gravação em uma chamada para inserir um plantão ou um lote e para executar a remoção por lista. A confirmação aparece antes da chamada; cancelar não consulta nem altera a planilha. Os dados atuais são relidos no servidor sob bloqueio em cada operação. Fórmulas, sobreposições e mudanças nos registros continuam bloqueadas antes da escrita.
+
+Após gravar, a resposta aproveita a mesma leitura, acrescida das alterações confirmadas, para atualizar o calendário. A conferência de remoção também devolve a aba atual quando já a consultou. O navegador aplica a resposta sem apagar e reconstruir a tela duas vezes e reutiliza o índice de profissionais quando os cadastros não mudam. Não há cache persistente para decidir escritas nem repetição automática de uma operação que falhou.
+
+Nos testes com planilha simulada, inserção individual/lote passou de três leituras completas dos valores para uma; exclusão e edição passaram de duas para uma; remoção por lista passou de três para uma. As fórmulas de um lote são consultadas de uma vez. Se houver fórmulas nos dias ou metadados do bloco, há uma releitura após a gravação para mostrar os valores recalculados; fórmulas de totais fora da grade não exigem essa recarga. Erros também recarregam o calendário para conferir possíveis escritas parciais. Esses números medem chamadas, sem prever segundos de espera na conta Google real.
+
+Atualize **Code.gs e App.html**, salve e publique **Nova versão** na mesma implantação. O cabeçalho mostra **rapido-1**. As funções antigas de conferência e envio continuam disponíveis para compatibilidade com interfaces anteriores.
 
 ## Cadastros e ferramentas
 
@@ -105,11 +115,14 @@ node tests/shared-layouts.test.cjs
 node tests/removals.test.cjs
 node tests/shared-removals.test.cjs
 node tests/shared-shift-edit.test.cjs
+node tests/performance.test.cjs
 ```
 
 A consulta por cooperado possui `node tests/monthly-cooperators-browser.cjs`, que valida nomes únicos, todos os vínculos/justificativas, mais de 50 registros, busca, sincronização com o formulário, calendário, troca/atualização/mês vazio e falha de leitura sem escrita.
 
 A edição de turnos e as prévias de POR QUEM são verificadas por `node tests/shift-editor-browser.cjs`, com o código real do servidor e uma planilha simulada, em telas de celular e computador.
+
+`node tests/performance-browser.cjs` verifica uma chamada por inserção/exclusão/remoção, cancelamento sem chamada, atualização dos registros, conferência sem leitura extra e recuperação de conflitos, em telas de celular/computador.
 
 O fluxo de remoção também possui um teste de navegador com planilha simulada: `node tests/removals-browser.cjs`, com Playwright disponível e Chromium instalado. Defina `CHROMIUM_PATH` se o executável estiver em outro caminho. Ele verifica os formatos de tela Android/Windows, prévia, homônimos, calendário, troca de mês, cancelamento, conflito e remoção confirmada, sem acessar a conta Google.
 

@@ -18,7 +18,7 @@ function transport(value){if(Array.isArray(value))return value.map(transport);if
   const {sheets,backend}=fixture(),context=await browser.newContext({viewport:mobile?{width:390,height:844}:{width:1365,height:900},isMobile:mobile,hasTouch:mobile,timezoneId:'America/Sao_Paulo'}),page=await context.newPage(),errors=[];let writeCalls=0,accept=false;
   page.on('pageerror',e=>errors.push(e.message));page.on('dialog',dialog=>accept?dialog.accept():dialog.dismiss());
   await page.clock.install({time:new Date('2026-10-11T15:00:00Z')});
-  await page.exposeFunction('sheetRPC',(name,arg)=>{if(name==='changeMonthlyDeletions')writeCalls++;return transport(JSON.parse(JSON.stringify(backend[name](transport(arg)))));});
+  await page.exposeFunction('sheetRPC',(name,arg)=>{const result=backend[name](transport(arg));if(name==='removeMonthlyShifts')writeCalls++;return transport(JSON.parse(JSON.stringify(result)));});
   await page.addInitScript(()=>{function runner(success=()=>{},failure=()=>{}){return new Proxy({},{get(_,key){if(key==='withSuccessHandler')return fn=>runner(fn,failure);if(key==='withFailureHandler')return fn=>runner(success,fn);return arg=>window.sheetRPC(key,arg).then(success,failure);}});}window.google={script:{run:runner()}};});
   await page.route('http://gestao.test/**',route=>route.fulfill({contentType:'text/html',body:fs.readFileSync(path.join(root,'google-apps-script/App.html'),'utf8')}));
   await page.goto('http://gestao.test/');await page.waitForFunction(()=>document.querySelector('#shared-status').textContent.includes('plantões carregados'));await page.waitForFunction(()=>document.querySelector('#app-status').textContent.includes('remoção lista-1'));

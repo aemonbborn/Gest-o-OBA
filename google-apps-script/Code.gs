@@ -8,15 +8,30 @@ const CODES_=['M','T','MT','N','9C','MN','TN','MTN'];
 const INTEGRATION_VERSION_='lote-4';
 const REMOVAL_VERSION_='lista-1';
 const EDIT_VERSION_='turno-1';
-function getIntegrationInfo(){return {version:INTEGRATION_VERSION_,removalVersion:REMOVAL_VERSION_,editVersion:EDIT_VERSION_};}
+const PERFORMANCE_VERSION_='rapido-1';
+function getIntegrationInfo(){return {version:INTEGRATION_VERSION_,removalVersion:REMOVAL_VERSION_,editVersion:EDIT_VERSION_,performanceVersion:PERFORMANCE_VERSION_};}
 function listMonthlySheets(){return livro_().getSheets().map(s=>s.getName()).filter(n=>MONTHS_[n]);}
-function grade_(name){if(!MONTHS_[name])throw Error('Selecione uma aba mensal válida.');const s=livro_().getSheetByName(name);if(!s)throw Error('Aba não encontrada.');const values=s.getDataRange().getDisplayValues();let year=null;for(const row of values.slice(0,12)){for(const cell of row){const match=String(cell).match(/\b(20\d{2})\b/);if(match)year=Number(match[1]);}}if(!year)throw Error('O título desta aba precisa conter o ano, por exemplo OUTUBRO DE 2026.');
+function grade_(name,withFormulas=false){if(!MONTHS_[name])throw Error('Selecione uma aba mensal válida.');const s=livro_().getSheetByName(name);if(!s)throw Error('Aba não encontrada.');const data=s.getDataRange(),values=data.getDisplayValues(),formulas=withFormulas?data.getFormulas():null;let year=null;for(const row of values.slice(0,12)){for(const cell of row){const match=String(cell).match(/\b(20\d{2})\b/);if(match)year=Number(match[1]);}}if(!year)throw Error('O título desta aba precisa conter o ano, por exemplo OUTUBRO DE 2026.');
 const blocks=[];for(let i=0;i<values.length;i++){const row=values[i];if(norm_(row[0])==='MAT'&&norm_(row[1])==='NOME'&&norm_(row[2])==='COOPERATIVA'&&norm_(row[3])==='MOTIVO'&&norm_(row[4])==='POR QUEM'){let category=null;for(let k=i-1;k>=Math.max(0,i-5);k--){const heading=norm_(values[k][0]);if(heading.includes('ENFERMEIROS')){category='ENFERMEIRO';break;}if(heading.includes('TECNICOS')){category='TÉCNICO DE ENFERMAGEM';break;}}if(!category)throw Error('Não foi possível identificar a função do bloco na linha '+(i+1));blocks.push({header:i+1,start:i+2,end:values.length,category});}}
 if(!blocks.length)throw Error('Cabeçalhos da grade não reconhecidos.');for(let i=0;i<blocks.length-1;i++)blocks[i].end=blocks[i+1].header-2;
 const month=year+'-'+String(MONTHS_[name]).padStart(2,'0'),days=new Date(Date.UTC(year,MONTHS_[name],0)).getUTCDate();let validatedHeader=null;for(const b of blocks){const headers=values[b.header-2]||[];const dayHeaders=headers.slice(5,5+days);const complete=Array.from({length:days},(_,i)=>Number(dayHeaders[i])===i+1).every(Boolean);const empty=Array.from({length:days},(_,i)=>!String(dayHeaders[i]||'').trim()).every(Boolean);if(complete){validatedHeader=b.header-1;}else if(empty&&validatedHeader){b.inheritedDayHeader=validatedHeader;}else{throw Error('Dias fora do layout esperado no bloco '+b.category+' (linha '+(b.header-1)+'). Os dias devem ser numerados de 1 a '+days+', ou ficar vazios para usar o cabeçalho validado do bloco acima.');}}
-return {s,values,blocks,month,days};}
-function readMonthlySheet(name){const g=grade_(name),records=[];for(const b of g.blocks)for(let row=b.start;row<=b.end;row++){const values=g.values[row-1]||[],meta=values.slice(0,5);if(!meta[1])continue;for(let day=1;day<=g.days;day++){const code=values[day+4];if(code)records.push({row,date:g.month+'-'+String(day).padStart(2,'0'),code,meta,category:b.category});}}return {sheet:name,month:g.month,records};}
+return {s,values,blocks,month,days,name,formulas};}
+function readMonthlySheet(name){return snapshot_(grade_(name));}
+function snapshot_(g){const records=[];for(const b of g.blocks)for(let row=b.start;row<=b.end;row++){const values=g.values[row-1]||[],meta=values.slice(0,5);if(!meta[1])continue;for(let day=1;day<=g.days;day++){const code=values[day+4];if(code)records.push({row,date:g.month+'-'+String(day).padStart(2,'0'),code,meta,category:b.category});}}return {sheet:g.name,month:g.month,records};}
 function cell_(g,row,date){if(typeof date!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(date)||!date.startsWith(g.month+'-'))throw Error('A data não corresponde ao mês/ano da aba.');const day=Number(date.slice(-2));if(day<1||day>g.days||!Number.isInteger(row)||!g.blocks.some(b=>row>=b.start&&row<=b.end))throw Error('Linha ou dia fora da grade.');return g.s.getRange(row,day+5);}
+
+// Reutiliza a leitura feita sob bloqueio; aplica apenas escritas já confirmadas.
+function mutationResult_(g,changes){
+ for(const c of changes){if(c.newMeta)g.values[c.row-1].splice(0,5,...c.newMeta);g.values[c.row-1][Number(c.date.slice(-2))+4]=c.code;}
+ return {ok:true,count:changes.length,snapshot:resultSnapshot_(g)};
+}
+function resultSnapshot_(g){
+ // Plantões ou metadados calculados podem depender da célula alterada.
+ for(const b of g.blocks)for(let row=b.start;row<=b.end;row++)if(g.formulas&&g.formulas[row-1].slice(0,5+g.days).some(Boolean))return readMonthlySheet(g.name);
+ return snapshot_(g);
+}
+
+function formulaAt_(g,row,col){return g.formulas?g.formulas[row-1][col-1]:g.s.getRange(row,col).getFormula();}
 
 function assertShiftAvailable_(g,row,date,code,meta){const b=g.blocks.find(b=>row>=b.start&&row<=b.end);const day=Number(date.slice(-2));const atoms={M:['M'],T:['T'],MT:['M','T'],N:['N'],'9C':['M','T'],MN:['M','N'],TN:['T','N'],MTN:['M','T','N']};for(let r=b.start;r<=b.end;r++){const v=g.values[r-1],other=v[day+4];if(r===row||!other||!sameProfessional_(meta,v))continue;if(!atoms[other])throw Error('Existe um turno especial neste dia em outra linha. Confira a planilha antes de inserir.');if(atoms[code].some(a=>atoms[other].includes(a)))throw Error('O profissional já tem um turno sobreposto neste dia em outra linha. Recarregue e confira o calendário.');}}
 function sameProfessional_(a,b){const ar=norm_(a[0]),br=norm_(b[0]);return norm_(a[1])===norm_(b[1])&&norm_(a[2])===norm_(b[2])&&(ar===br||!ar||ar==='-'||!br||br==='-');}
@@ -26,24 +41,24 @@ function planInsertion_(g,p){
  const b=g.blocks.find(b=>b.category===p.category);if(!b)throw Error('Bloco da função não encontrado.');
  let empty=null;const targets=[];for(let row=b.start;row<=b.end;row++){const meta=g.values[row-1].slice(0,5);if(sameProfessional_(meta,p.meta)&&norm_(meta[3])===norm_(p.meta[3])&&norm_(meta[4])===norm_(p.meta[4]))targets.push(row);else if(!empty&&meta.slice(1).every(v=>!v)&&(!meta[0]||meta[0]==='-')&&g.values[row-1].slice(5,5+g.days).every(v=>!v))empty=row;}
  const day=Number(String(p.date).slice(-2));let row=targets[0]||empty;if(!row)throw Error('Não há linha vazia neste bloco. Adicione uma linha de modelo na planilha e recarregue.');cell_(g,row,p.date);
- if(targets.length)row=targets.find(r=>!g.values[r-1][day+4]&&!g.s.getRange(r,day+5).getFormula())||targets[0];
- const range=cell_(g,row,p.date),meta=g.values[row-1].slice(0,5);assertShiftAvailable_(g,row,p.date,p.code,targets.length?meta:p.meta);if(g.values[row-1][day+4]||range.getFormula())throw Error('Este dia já está preenchido ou contém fórmula na linha existente. Confira antes de inserir.');
+ if(targets.length)row=targets.find(r=>!g.values[r-1][day+4]&&!formulaAt_(g,r,day+5))||targets[0];
+ const range=cell_(g,row,p.date),meta=g.values[row-1].slice(0,5);assertShiftAvailable_(g,row,p.date,p.code,targets.length?meta:p.meta);if(g.values[row-1][day+4]||formulaAt_(g,row,day+5))throw Error('Este dia já está preenchido ou contém fórmula na linha existente. Confira antes de inserir.');
  return {sheet:p.sheet,row,date:p.date,expected:'',expectedMeta:meta,code:p.code,newMeta:targets.length?null:p.meta,category:p.category};
 }
-function changeMonthlyShift(p){const lock=LockService.getScriptLock();lock.waitLock(15000);try{const g=grade_(p.sheet);if(p.code!==''&&!CODES_.includes(p.code))throw Error('Turno não reconhecido.');const cell=cell_(g,p.row,p.date);const meta=g.s.getRange(p.row,1,1,5).getDisplayValues()[0];if(!Array.isArray(p.expectedMeta)||p.expectedMeta.length!==5||meta.some((v,i)=>v!==p.expectedMeta[i])||cell.getDisplayValue()!==p.expected)throw Error('A planilha mudou desde a conferência. Recarregue antes de alterar.');if(cell.getFormula())throw Error('Esta célula contém fórmula e não será alterada.');if(p.code&&p.expected)throw Error('Não é permitido sobrescrever um plantão existente.');if(!p.code&&!p.expected)throw Error('A célula já está vazia.');if(p.code)assertShiftAvailable_(g,p.row,p.date,p.code,p.newMeta||meta);if(p.newMeta){const plan=planInsertion_(g,{sheet:p.sheet,date:p.date,code:p.code,meta:p.newMeta,category:p.category});if(plan.row!==p.row)throw Error('A linha disponível mudou; confira novamente.');for(let i=0;i<5;i++){const range=g.s.getRange(p.row,i+1);if(range.getFormula())throw Error('A linha contém fórmula nos dados cadastrais.');}g.s.getRange(p.row,1,1,5).setNumberFormat('@').setValues([p.newMeta]);}if(p.code)cell.setValue(p.code);else cell.clearContent();SpreadsheetApp.flush();return {ok:true,snapshot:readMonthlySheet(p.sheet)};}finally{lock.releaseLock();}}
+function changeMonthlyShift(p){const lock=LockService.getScriptLock();lock.waitLock(15000);try{const g=grade_(p.sheet,!!p.fast);if(p.code!==''&&!CODES_.includes(p.code))throw Error('Turno não reconhecido.');const cell=cell_(g,p.row,p.date);const meta=g.values[p.row-1].slice(0,5);if(!Array.isArray(p.expectedMeta)||p.expectedMeta.length!==5||meta.some((v,i)=>v!==p.expectedMeta[i])||g.values[p.row-1][Number(p.date.slice(-2))+4]!==p.expected)throw Error('A planilha mudou desde a conferência. Recarregue antes de alterar.');if(formulaAt_(g,p.row,Number(p.date.slice(-2))+5))throw Error('Esta célula contém fórmula e não será alterada.');if(p.code&&p.expected)throw Error('Não é permitido sobrescrever um plantão existente.');if(!p.code&&!p.expected)throw Error('A célula já está vazia.');if(p.code)assertShiftAvailable_(g,p.row,p.date,p.code,p.newMeta||meta);if(p.newMeta){const plan=planInsertion_(g,{sheet:p.sheet,date:p.date,code:p.code,meta:p.newMeta,category:p.category});if(plan.row!==p.row)throw Error('A linha disponível mudou; confira novamente.');for(let i=0;i<5;i++){const range=g.s.getRange(p.row,i+1);if(range.getFormula())throw Error('A linha contém fórmula nos dados cadastrais.');}g.s.getRange(p.row,1,1,5).setNumberFormat('@').setValues([p.newMeta]);}if(p.code)cell.setValue(p.code);else cell.clearContent();SpreadsheetApp.flush();return p.fast?mutationResult_(g,[p]):{ok:true,snapshot:readMonthlySheet(p.sheet)};}finally{lock.releaseLock();}}
 
 /** Altera somente o turno de uma célula existente; os metadados nunca são escritos. */
 function updateMonthlyShift(p){
  if(!p||!MONTHS_[p.sheet]||!Number.isInteger(p.row)||typeof p.expected!=='string'||!p.expected||!CODES_.includes(p.code)||!Array.isArray(p.expectedMeta)||p.expectedMeta.length!==5||p.expectedMeta.some(v=>typeof v!=='string')||!['ENFERMEIRO','TÉCNICO DE ENFERMAGEM'].includes(p.category)||p.newMeta)throw Error('Confira o plantão e escolha um turno válido.');
  const lock=LockService.getScriptLock();lock.waitLock(15000);
  try{
-  const g=grade_(p.sheet),cell=cell_(g,p.row,p.date),meta=g.values[p.row-1].slice(0,5),category=g.blocks.find(b=>p.row>=b.start&&p.row<=b.end).category;
-  if(category!==p.category||meta.some((v,i)=>v!==p.expectedMeta[i])||cell.getDisplayValue()!==p.expected)throw Error('O plantão mudou desde a conferência. Atualize o calendário e abra o plantão novamente.');
-  if(cell.getFormula())throw Error('Esta célula contém fórmula e não será alterada.');
+  const g=grade_(p.sheet,!!p.fast),cell=cell_(g,p.row,p.date),meta=g.values[p.row-1].slice(0,5),category=g.blocks.find(b=>p.row>=b.start&&p.row<=b.end).category;
+  if(category!==p.category||meta.some((v,i)=>v!==p.expectedMeta[i])||g.values[p.row-1][Number(p.date.slice(-2))+4]!==p.expected)throw Error('O plantão mudou desde a conferência. Atualize o calendário e abra o plantão novamente.');
+  if(formulaAt_(g,p.row,Number(p.date.slice(-2))+5))throw Error('Esta célula contém fórmula e não será alterada.');
   if(p.code===p.expected)throw Error('Escolha um turno diferente do atual.');
   assertShiftAvailable_(g,p.row,p.date,p.code,meta);
   try{cell.setValue(p.code);SpreadsheetApp.flush();}catch(e){throw Error('Não foi possível confirmar a alteração. Atualize o calendário e confira o turno antes de tentar novamente. '+e.message);}
-  return {ok:true,snapshot:readMonthlySheet(p.sheet)};
+  return p.fast?mutationResult_(g,[p]):{ok:true,snapshot:readMonthlySheet(p.sheet)};
  }finally{lock.releaseLock();}
 }
 
@@ -75,10 +90,25 @@ function batchConflictMessage_(fresh,p){
  }
  return prefix+'o identificador da confirmação não corresponde aos dados atuais. Atualize o calendário e confira o lote novamente. Nenhum plantão foi gravado neste envio.';
 }
-function changeMonthlyShifts(p){const lock=LockService.getScriptLock();lock.waitLock(15000);try{const g=grade_(p.sheet),fresh=batchPlan_(g,p);if(batchFingerprint_(fresh.changes)!==p.confirmation)throw Error(batchConflictMessage_(fresh,p));for(const c of fresh.changes){if(c.newMeta)for(let i=0;i<5;i++)if(g.s.getRange(c.row,i+1).getFormula())throw Error('Uma linha do lote contém fórmula nos dados cadastrais.');}try{for(const c of fresh.changes)if(c.newMeta)g.s.getRange(c.row,1,1,5).setNumberFormat('@').setValues([c.newMeta]);const groups={};for(const c of fresh.changes){if(!groups[c.code])groups[c.code]=[];const col=Number(c.date.slice(-2))+5;groups[c.code].push(columnLetter_(col)+c.row);}for(const code of Object.keys(groups))g.s.getRangeList(groups[code]).setValue(code);SpreadsheetApp.flush();}catch(e){throw Error('O envio do lote não foi concluído. Atualize o calendário e confira possíveis alterações parciais antes de tentar novamente. '+e.message);}return {ok:true,count:fresh.changes.length,snapshot:readMonthlySheet(p.sheet)};}finally{lock.releaseLock();}}
+function writeInsertions_(g,changes){
+ for(const c of changes)if(c.newMeta)for(let i=0;i<5;i++)if(formulaAt_(g,c.row,i+1))throw Error('Uma linha do lote contém fórmula nos dados cadastrais.');
+ try{
+  for(const c of changes)if(c.newMeta)g.s.getRange(c.row,1,1,5).setNumberFormat('@').setValues([c.newMeta]);
+  const groups={};for(const c of changes){if(!groups[c.code])groups[c.code]=[];groups[c.code].push(columnLetter_(Number(c.date.slice(-2))+5)+c.row);}
+  for(const code of Object.keys(groups))g.s.getRangeList(groups[code]).setValue(code);
+  SpreadsheetApp.flush();
+ }catch(e){throw Error('O envio do lote não foi concluído. Atualize o calendário e confira possíveis alterações parciais antes de tentar novamente. '+e.message);}
+}
+function changeMonthlyShifts(p){const lock=LockService.getScriptLock();lock.waitLock(15000);try{const g=grade_(p.sheet),fresh=batchPlan_(g,p);if(batchFingerprint_(fresh.changes)!==p.confirmation)throw Error(batchConflictMessage_(fresh,p));writeInsertions_(g,fresh.changes);return {ok:true,count:fresh.changes.length,snapshot:readMonthlySheet(p.sheet)};}finally{lock.releaseLock();}}
+// A confirmação acontece antes da chamada; todo o lote é validado antes da escrita.
+function insertMonthlyShifts(p){
+ const lock=LockService.getScriptLock();lock.waitLock(15000);
+ try{const g=grade_(p.sheet,true);const plan=batchPlan_(g,p);writeInsertions_(g,plan.changes);return mutationResult_(g,plan.changes);}finally{lock.releaseLock();}
+}
+
 function columnLetter_(col){let out='';while(col){const rem=(col-1)%26;out=String.fromCharCode(65+rem)+out;col=Math.floor((col-1)/26);}return out;}
 
-function removalGrade_(cache,name){if(!cache[name]){const g=grade_(name);g.formulas=g.s.getDataRange().getFormulas();cache[name]=g;}return cache[name];}
+function removalGrade_(cache,name){if(!cache[name]){cache[name]=grade_(name,true);}return cache[name];}
 function findMonthlyShiftsForRemoval(p){
  if(!p||!Array.isArray(p.items)||!p.items.length||p.items.length>500)throw Error('Confira de 1 a 500 linhas por vez.');
  const cache={},failures={},entries=[];
@@ -98,7 +128,7 @@ function findMonthlyShiftsForRemoval(p){
   }catch(e){entry.error=e.message;}
   entries.push(entry);
  }
- return {entries};
+ return {entries,snapshot:p.currentSheet&&cache[p.currentSheet]?snapshot_(cache[p.currentSheet]):null};
 }
 function deletionPlan_(p){
  if(!p||!Array.isArray(p.targets)||!p.targets.length||p.targets.length>500)throw Error('Selecione de 1 a 500 plantões para remover.');
@@ -117,14 +147,22 @@ function deletionPlan_(p){
 }
 function deletionFingerprint_(changes){return REMOVAL_VERSION_+':'+batchFingerprint_(changes);}
 function planMonthlyDeletions(p){const plan=deletionPlan_(p);return {targets:plan.changes.map(c=>({sheet:c.sheet,row:c.row,date:c.date,expected:c.expected,expectedMeta:c.expectedMeta,category:c.category})),confirmation:deletionFingerprint_(plan.changes)};}
+function writeDeletions_(plan){
+ const groups={};for(const c of plan.changes){if(!groups[c.sheet])groups[c.sheet]=[];groups[c.sheet].push(columnLetter_(Number(c.date.slice(-2))+5)+c.row);}
+ try{for(const sheet of Object.keys(groups))plan.cache[sheet].s.getRangeList(groups[sheet]).clearContent();SpreadsheetApp.flush();}
+ catch(e){throw Error('A remoção do lote não foi concluída. Atualize o calendário e confira a lista novamente para verificar possíveis remoções parciais. '+e.message);}
+ return Object.keys(groups);
+}
 function changeMonthlyDeletions(p){
  const lock=LockService.getScriptLock();lock.waitLock(15000);
+ try{const plan=deletionPlan_(p);if(p.confirmation!==deletionFingerprint_(plan.changes))throw Error('Remoção ['+REMOVAL_VERSION_+']: confirmação inválida ou de outra versão. Confira a lista novamente. Nenhum plantão foi removido neste envio.');return {ok:true,count:plan.changes.length,sheets:writeDeletions_(plan)};}finally{lock.releaseLock();}
+}
+function removeMonthlyShifts(p){
+ if(p&&p.currentSheet!==undefined&&!Object.keys(MONTHS_).includes(p.currentSheet))throw Error('Selecione uma aba mensal válida.');
+ const lock=LockService.getScriptLock();lock.waitLock(15000);
  try{
-  const plan=deletionPlan_(p);
-  if(p.confirmation!==deletionFingerprint_(plan.changes))throw Error('Remoção ['+REMOVAL_VERSION_+']: confirmação inválida ou de outra versão. Confira a lista novamente. Nenhum plantão foi removido neste envio.');
-  const groups={};for(const c of plan.changes){if(!groups[c.sheet])groups[c.sheet]=[];groups[c.sheet].push(columnLetter_(Number(c.date.slice(-2))+5)+c.row);}
-  try{for(const sheet of Object.keys(groups))plan.cache[sheet].s.getRangeList(groups[sheet]).clearContent();SpreadsheetApp.flush();}
-  catch(e){throw Error('A remoção do lote não foi concluída. Atualize o calendário e confira a lista novamente para verificar possíveis remoções parciais. '+e.message);}
-  return {ok:true,count:plan.changes.length,sheets:Object.keys(groups)};
+  const plan=deletionPlan_(p),sheets=writeDeletions_(plan);
+  for(const c of plan.changes)plan.cache[c.sheet].values[c.row-1][Number(c.date.slice(-2))+4]='';
+  return {ok:true,count:plan.changes.length,sheets,snapshot:plan.cache[p.currentSheet]?resultSnapshot_(plan.cache[p.currentSheet]):null,unchangedSheet:plan.cache[p.currentSheet]?null:p.currentSheet};
  }finally{lock.releaseLock();}
 }
