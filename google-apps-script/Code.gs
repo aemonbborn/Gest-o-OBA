@@ -40,10 +40,16 @@ function planInsertion_(g,p){
  if(!CODES_.includes(p.code)||!Array.isArray(p.meta)||p.meta.length!==5||p.meta.some((v,i)=>typeof v!=='string'||v.length>240||/[\t\r\n]/.test(v)||(/^\s*[=+@-]/.test(v)&&!(i===0&&v==='-')))||!p.meta[1]||!p.meta[2]||!p.meta[3])throw Error('Confira os dados do plantão.');
  const b=g.blocks.find(b=>b.category===p.category);if(!b)throw Error('Bloco da função não encontrado.');
  let empty=null;const targets=[];for(let row=b.start;row<=b.end;row++){const meta=g.values[row-1].slice(0,5);if(sameProfessional_(meta,p.meta)&&norm_(meta[3])===norm_(p.meta[3])&&norm_(meta[4])===norm_(p.meta[4]))targets.push(row);else if(!empty&&meta.slice(1).every(v=>!v)&&(!meta[0]||meta[0]==='-')&&g.values[row-1].slice(5,5+g.days).every(v=>!v))empty=row;}
- const day=Number(String(p.date).slice(-2));let row=targets[0]||empty;if(!row)throw Error('Não há linha vazia neste bloco. Adicione uma linha de modelo na planilha e recarregue.');cell_(g,row,p.date);
- if(targets.length)row=targets.find(r=>!g.values[r-1][day+4]&&!formulaAt_(g,r,day+5))||targets[0];
- const range=cell_(g,row,p.date),meta=g.values[row-1].slice(0,5);assertShiftAvailable_(g,row,p.date,p.code,targets.length?meta:p.meta);if(g.values[row-1][day+4]||formulaAt_(g,row,day+5))throw Error('Este dia já está preenchido ou contém fórmula na linha existente. Confira antes de inserir.');
- return {sheet:p.sheet,row,date:p.date,expected:'',expectedMeta:meta,code:p.code,newMeta:targets.length?null:p.meta,category:p.category};
+ cell_(g,b.start,p.date);const day=Number(p.date.slice(-2));
+ const reusable=targets.find(row=>!g.values[row-1][day+4]&&!formulaAt_(g,row,day+5));
+ if(!reusable&&targets.some(row=>!g.values[row-1][day+4]&&formulaAt_(g,row,day+5)))throw Error('Este dia contém fórmula na linha existente. Confira antes de inserir.');
+ const row=reusable||empty;
+ const newMeta=reusable?null:targets.length?g.values[targets[0]-1].slice(0,5):p.meta;
+ // A nova linha só recebe um turno que não se sobreponha aos já registrados.
+ if(!row)throw Error('Não há linha vazia neste bloco. Adicione uma linha de modelo na planilha e recarregue.');
+ assertShiftAvailable_(g,row,p.date,p.code,reusable?g.values[row-1].slice(0,5):newMeta);
+ const meta=g.values[row-1].slice(0,5);if(g.values[row-1][day+4]||formulaAt_(g,row,day+5))throw Error('Este dia já está preenchido ou contém fórmula na linha existente. Confira antes de inserir.');
+ return {sheet:p.sheet,row,date:p.date,expected:'',expectedMeta:meta,code:p.code,newMeta,category:p.category};
 }
 function changeMonthlyShift(p){const lock=LockService.getScriptLock();lock.waitLock(15000);try{const g=grade_(p.sheet,!!p.fast);if(p.code!==''&&!CODES_.includes(p.code))throw Error('Turno não reconhecido.');const cell=cell_(g,p.row,p.date);const meta=g.values[p.row-1].slice(0,5);if(!Array.isArray(p.expectedMeta)||p.expectedMeta.length!==5||meta.some((v,i)=>v!==p.expectedMeta[i])||g.values[p.row-1][Number(p.date.slice(-2))+4]!==p.expected)throw Error('A planilha mudou desde a conferência. Recarregue antes de alterar.');if(formulaAt_(g,p.row,Number(p.date.slice(-2))+5))throw Error('Esta célula contém fórmula e não será alterada.');if(p.code&&p.expected)throw Error('Não é permitido sobrescrever um plantão existente.');if(!p.code&&!p.expected)throw Error('A célula já está vazia.');if(p.code)assertShiftAvailable_(g,p.row,p.date,p.code,p.newMeta||meta);if(p.newMeta){const plan=planInsertion_(g,{sheet:p.sheet,date:p.date,code:p.code,meta:p.newMeta,category:p.category});if(plan.row!==p.row)throw Error('A linha disponível mudou; confira novamente.');for(let i=0;i<5;i++){const range=g.s.getRange(p.row,i+1);if(range.getFormula())throw Error('A linha contém fórmula nos dados cadastrais.');}g.s.getRange(p.row,1,1,5).setNumberFormat('@').setValues([p.newMeta]);}if(p.code)cell.setValue(p.code);else cell.clearContent();SpreadsheetApp.flush();return p.fast?mutationResult_(g,[p]):{ok:true,snapshot:readMonthlySheet(p.sheet)};}finally{lock.releaseLock();}}
 

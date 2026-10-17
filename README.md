@@ -74,11 +74,13 @@ Cópia mensal: selecione mês e função em Copiar ou exportar registros locais.
 
 ## Reaproveitamento de linhas
 
-Na planilha, o mesmo profissional/vínculo com a mesma justificativa e POR QUEM reutiliza uma linha existente. Matrícula vazia ou “-” não impede o reaproveitamento. Matrículas preenchidas diferentes, cooperativas ou funções diferentes não são unificadas. Havendo duplicatas preexistentes, procura uma linha correspondente com o dia livre antes de considerar outra linha. Se todas estão ocupadas, bloqueia a inserção em vez de criar uma linha adicional para o mesmo conjunto. Não consolida nem remove duplicatas históricas automaticamente.
+Na planilha, o mesmo profissional/vínculo com a mesma justificativa e POR QUEM reutiliza uma linha existente. Matrícula vazia ou “-” não impede o reaproveitamento. Matrículas preenchidas diferentes, cooperativas ou funções diferentes não são unificadas. Havendo duplicatas preexistentes, procura uma linha correspondente com o dia livre antes de considerar outra linha. Se todas as linhas correspondentes já têm plantão naquele dia, usa uma linha de modelo vazia do mesmo bloco para acrescentar um turno compatível, copiando matrícula, nome, cooperativa, justificativa e POR QUEM da linha existente. Por exemplo, M e T no mesmo dia ficam em linhas separadas. Os plantões originais são preservados e os próximos dias voltam a usar uma linha correspondente com o dia livre. Turnos iguais ou sobrepostos no mesmo vínculo continuam bloqueados. Não consolida nem remove duplicatas históricas automaticamente.
 
 Se motivo ou POR QUEM forem diferentes, pode preencher outra linha vazia do bloco. Não insere linhas estruturais, não sobrescreve turnos, fórmulas ou totais. Alterações desde a conferência e sobreposições em outras linhas são bloqueadas. Exclusão remove apenas o turno da célula, mantendo a linha. Turnos combinados são excluídos como uma única célula.
 
-A grade mensal local usa a mesma regra de agrupamento, inclusive quando um registro não tem matrícula.
+A grade mensal local agrupa registros compatíveis, inclusive quando um registro não tem matrícula. A criação da linha adicional descrita acima se aplica à inserção na planilha conectada; a exportação local continua combinando os turnos compatíveis na mesma célula.
+
+Para acrescentar outro turno na planilha conectada, mantenha o profissional, a justificativa e o POR QUEM, escolha o turno em **Novo** no mesmo dia e clique em **Inserir**. Não precisa excluir nem alterar o turno verde existente. O calendário e os detalhes mostram os dois registros, identificados por suas linhas. Funciona também em lotes de dias. Exige uma linha de modelo vazia no bloco; não insere linhas estruturais nem altera fórmulas ou totais. Atualize Code.gs e App.html e publique Nova versão.
 
 ## Dados e conexão
 
@@ -116,6 +118,7 @@ node tests/removals.test.cjs
 node tests/shared-removals.test.cjs
 node tests/shared-shift-edit.test.cjs
 node tests/performance.test.cjs
+node tests/additional-shift.test.cjs
 ```
 
 A consulta por cooperado possui `node tests/monthly-cooperators-browser.cjs`, que valida nomes únicos, todos os vínculos/justificativas, mais de 50 registros, busca, sincronização com o formulário, calendário, troca/atualização/mês vazio e falha de leitura sem escrita.

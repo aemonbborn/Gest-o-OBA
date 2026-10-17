@@ -36,7 +36,7 @@ O modo local e a cópia CSV/grade continuam independentes da planilha remota. Se
 
 O fluxo principal é profissional → justificativa/POR QUEM → calendário. O mês atual carrega automaticamente e selecionar outra aba atualiza a grade. Histórico, importações e exportação ficam recolhidos em Cadastros e ferramentas. A escrita devolve a grade atualizada em sua resposta, reduzindo uma chamada adicional do navegador. Dados de busca são preparados uma vez e reutilizados; listas longas não são renderizadas antes de abrir suas ferramentas.
 
-O reaproveitamento compara profissional/vínculo, motivo e POR QUEM, permitindo matrícula ausente ou “-”. Se há linhas iguais anteriores, procura a primeira com o dia livre; se todas estão preenchidas, bloqueia em vez de criar outra linha igual. Matrículas preenchidas diferentes, cooperativas e funções não são misturadas.
+O reaproveitamento compara profissional/vínculo, motivo e POR QUEM, permitindo matrícula ausente ou “-”. Se há linhas iguais anteriores, procura a primeira com o dia livre; se todas têm plantão naquele dia, usa uma linha de modelo vazia no mesmo bloco para um turno adicional compatível. Copia os metadados da linha correspondente, preservando justificativa, POR QUEM e matrícula. Não transforma nem substitui o turno anterior; o calendário mostra ambos. Duplicação do mesmo turno e sobreposição continuam bloqueadas. Matrículas preenchidas diferentes, cooperativas e funções não são misturadas.
 
 ## Lista nativa e envio de escalas
 
@@ -92,3 +92,11 @@ A grade devolvida combina a leitura validada e as escritas confirmadas. Se os bl
 As APIs antigas com identificadores SHA-256 continuam disponíveis para interfaces já publicadas. No fluxo atual, a confirmação ocorre antes da chamada e a validação completa é feita na mesma execução que grava. Não usa CacheService nem dados de uma execução anterior para autorizar alterações.
 
 `node tests/performance.test.cjs` compara as operações anteriores e atuais, verifica conteúdo preservado e conta leituras/chamadas, inclusive a releitura necessária de fórmulas. `node tests/performance-browser.cjs` verifica o fluxo em telas de celular e computador com Playwright/Chromium e servidor simulado. Não há medição de tempo na conta Google real; a latência da plataforma e da rede ainda participa da espera.
+
+## Acrescentar outro turno no mesmo dia
+
+Escolha o turno no campo **Novo** do dia e use **Inserir**, mantendo a justificativa e o POR QUEM desejados. Se a linha correspondente já possui plantão no dia, o servidor primeiro procura outra linha correspondente com a célula livre. Quando todas estão preenchidas, preenche uma linha de modelo vazia com os mesmos metadados e o novo turno. M + T, M + N e MT + N são exemplos de turnos compatíveis em linhas separadas. M + M e MT + M continuam bloqueados por sobreposição. Os dias seguintes podem reutilizar qualquer linha correspondente que esteja livre na data.
+
+A operação continua validada sob bloqueio, em uma chamada e sem inserir linhas estruturais. Sem linha de modelo vazia, solicita preparar espaço na planilha. Fórmulas e totais permanecem protegidos. Funciona na inserção individual e no envio em lote; as APIs anteriores também passam a aceitar a nova regra. A exportação local não foi alterada.
+
+Atualize **Code.gs e App.html**, salve e publique **Nova versão**. Verificações: `node tests/additional-shift.test.cjs` e, com Playwright/Chromium, `node tests/performance-browser.cjs`. Testes usam dados fictícios e não acessam a planilha do usuário.
