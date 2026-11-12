@@ -1,0 +1,38 @@
+const assert=require('node:assert/strict'),fixture=require('./helpers/workbook-fixture.cjs'),Team=require('../team.js'),P=require('../professionals.js');
+const payload=category=>({sheet:'OUT',category,meta:['999',category==='ENFERMEIRO'?'Nova Enfermeira':'Novo Técnico','COOPEN','ROTINA','Pessoa nova'],items:[{date:'2026-10-01',code:'N'},{date:'2026-10-03',code:'N'}]});
+for(const category of ['ENFERMEIRO','TÉCNICO DE ENFERMAGEM'])for(const amount of [1,2]){
+ const f=fixture(amount===1?{nurses:[['101','Enfermeira Alfa']],techs:[['201','Técnica Gama']]}:{}),s=f.sheets.OUT,before=f.backend.readMonthlySheet('OUT'),block=s.blocks.find(b=>b.category===category),modelStyle=s.formats[block.end-1].slice(),result=f.backend.insertMonthlyShifts(payload(category));
+ assert(result.snapshot.structureChanged);assert.equal(s.events.filter(e=>e[0]==='insert').length,1);assert.equal(result.count,2);const added=result.snapshot.records.filter(r=>r.meta[1]===payload(category).meta[1]);assert.equal(added.length,2);assert.equal(added[0].category,category);const row=added[0].row;assert.deepEqual(s.values[row-1].slice(0,5),payload(category).meta);assert.deepEqual(s.formats[row-1],modelStyle);assert.equal(s.formulas.get(`${row}:38`),'=COUNTIF(RC6:RC36,"N")*12');assert.equal(s.validations[row-1][1],'list');
+ for(const record of before.records)assert(result.snapshot.records.some(r=>r.meta[1]===record.meta[1]&&r.code===record.code&&r.category===record.category));const g=f.backend.grade_('OUT',true),b=g.blocks.find(b=>b.category===category);assert(row>=b.start&&row<=b.end);assert.equal(s.formulas.get(`${b.end+1}:6`),`=SUM(F${b.start}:F${b.end})`);assert(!result.snapshot.records.some(r=>r.meta[0].startsWith('TOTAL')));
+}
+{
+ const f=fixture(),s=f.sheets.OUT;const p=payload('ENFERMEIRO');p.meta=['101','Enfermeira Alfa','COOPEN','ROTINA','Pessoa substituída'];assert.throws(()=>f.backend.insertMonthlyShifts(p),/sobreposto/);assert(!s.events.some(e=>e[0]==='insert'));p.items=[{date:'2026-10-01',code:'M'}];const result=f.backend.insertMonthlyShifts(p);assert(result.snapshot.structureChanged);assert.equal(result.snapshot.records.filter(r=>r.meta[1]==='Enfermeira Alfa'&&r.date==='2026-10-01').length,2);
+}
+{
+ const f=fixture();const catalog=f.backend.syncCooperatorCatalog({profiles:[]});assert.equal(catalog.profiles.length,4);assert(f.sheets.GESTAO_COOPERADOS);assert(!f.backend.readMonthlySheet('NOV').records.length);assert.equal(f.backend.syncCooperatorCatalog({profiles:[]}).profiles.length,4);const extra={name:'Sem Plantões',registration:'777',category:'ENFERMEIRO',cooperative:'COOPEN'};assert.equal(f.backend.syncCooperatorCatalog({profiles:[extra]}).profiles.length,5);assert.equal(f.backend.syncCooperatorCatalog({profiles:[extra]}).profiles.length,5);const state=P.catalog({professionals:[],profiles:{},records:[]},catalog.profiles);assert.equal(state.professionals.length,4);assert.equal(P.catalog(state,catalog.profiles),state);assert.throws(()=>f.backend.syncCooperatorCatalog({profiles:[{name:'Inválido'}]}),/inválido/);
+}
+{
+ const records=[{date:'2026-10-01',code:'MT',meta:['1','Nome A','COOPEN','ROTINA',''],category:'ENFERMEIRO'},{date:'2026-10-01',code:'N',meta:['1','Nome A','COOPEN','FÉRIAS',''],category:'ENFERMEIRO'},{date:'2026-10-01',code:'9C',meta:['2','Nome B','COOPEN','ROTINA',''],category:'TÉCNICO DE ENFERMAGEM'},{date:'2026-10-02',code:'N',meta:['3','Outro dia','COOPEN','ROTINA',''],category:'ENFERMEIRO'}],summary=Team.day(records,'2026-10-01');assert.equal(summary.counts.ALL,2);assert.equal(summary.counts.M,1);assert.equal(summary.counts.T,1);assert.equal(summary.counts.N,1);assert.equal(summary.counts['9C'],1);assert.equal(Team.filter(summary,'N','ENFERMEIRO').length,1);assert.equal(Team.filter(summary,'9C','TÉCNICO DE ENFERMAGEM').length,1);assert.equal(Team.day(records,'2026-10-03').counts.ALL,0);
+}
+// Bloco totalmente vazio: cria uma linha na categoria correta e fórmulas de carga conhecidas.
+{
+ const f=fixture({nurses:[],techs:[]}),result=f.backend.insertMonthlyShifts(payload('TÉCNICO DE ENFERMAGEM')),g=f.backend.grade_('OUT',true),b=g.blocks.find(b=>b.category==='TÉCNICO DE ENFERMAGEM');assert.equal(result.count,2);assert.equal(g.blocks[0].end,g.blocks[0].start-1);assert(result.snapshot.records.every(r=>r.category==='TÉCNICO DE ENFERMAGEM'));assert(f.sheets.OUT.formulas.get(`${b.start}:38`).includes('COUNTIF'));assert.equal(f.sheets.OUT.formulas.get(`${b.start}:39`),'=RC37+RC38');
+}
+// Erros depois de inserir linhas são explícitos, sem anunciar sucesso ou repetir gravações.
+{
+ const f=fixture();f.sheets.OUT.api.failWrite=true;assert.throws(()=>f.backend.insertMonthlyShifts(payload('ENFERMEIRO')),/ampliação.*alterações parciais/);assert.equal(f.sheets.OUT.events.filter(e=>e[0]==='insert').length,1);assert(!f.sheets.OUT.events.some(e=>e[0]==='shift'));
+ const invalid=fixture();const p=payload('ENFERMEIRO');p.items[1].date='2026-11-01';assert.throws(()=>invalid.backend.insertMonthlyShifts(p),/mês/);assert(!invalid.sheets.OUT.events.some(e=>e[0]==='insert'));
+}
+// DADOS só fornece cooperados quando tem as quatro colunas cadastrais; POR QUEM não entra.
+{
+ const f=fixture();f.sheets.DADOS=f.makeSheet('DADOS',[['MAT','PROFISSIONAL DE ENFERMAGEM','CATEGORIA','COOPERATIVA'],['009','Nome do Cadastro','TÉCNICO DE ENFERMAGEM','COOPISAUDE']]);const result=f.backend.syncCooperatorCatalog({profiles:[]});assert(result.profiles.some(p=>p.name==='Nome do Cadastro'&&p.registration==='009'));const writes=f.sheets.GESTAO_COOPERADOS.events.filter(e=>e[0]==='values').length;f.backend.syncCooperatorCatalog({profiles:[]});assert.equal(f.sheets.GESTAO_COOPERADOS.events.filter(e=>e[0]==='values').length,writes);
+ const native=fixture();const row=Array(40).fill('');row[30]='POR QUEM';native.sheets.DADOS=native.makeSheet('DADOS',[[],row,Array.from({length:40},(_,i)=>i===30?'Nome só de POR QUEM':'')]);assert(!native.backend.syncCooperatorCatalog({profiles:[]}).profiles.some(p=>p.name==='Nome só de POR QUEM'));
+}
+
+// Expansão com as posições reais dos cabeçalhos das 12 abas, sem dados pessoais.
+for(const layout of require('./fixtures/monthly-layouts.json')){
+ const f=fixture(),month=['JAN','FEV','MAR','ABRIL','MAIO','JUN','JUL','AGT','SET','OUT','NOV','DEZ'].indexOf(layout.name)+1,rows=Array.from({length:layout.headers[1].row+5},()=>Array(40).fill(''));rows[5][5]='2026';
+ for(let index=0;index<2;index++){const h=layout.headers[index];rows[h.row-2][0]=h.heading;h.days.forEach((d,i)=>rows[h.row-2][i+5]=d===null?'':String(d));rows[h.row-1].splice(0,5,'MAT','NOME','COOPERATIVA','MOTIVO','POR QUEM');const end=index===0?layout.headers[1].row-2:h.row+2;for(let row=h.row+1;row<=end;row++){rows[row-1].splice(0,5,String(row),'Fictício '+row,'COOPEN','ROTINA','');rows[row-1][5]='N';}}
+ rows[layout.headers[1].row+2][0]='TOTAL TÉCNICOS';f.sheets[layout.name]=f.makeSheet(layout.name,rows);const before=f.backend.readMonthlySheet(layout.name),p={...payload('ENFERMEIRO'),sheet:layout.name,items:[{date:`2026-${String(month).padStart(2,'0')}-01`,code:'M'}]};const result=f.backend.insertMonthlyShifts(p);assert(result.snapshot.structureChanged,layout.name);assert.equal(result.snapshot.records.length,before.records.length+1);assert(result.snapshot.records.some(r=>r.meta[1]==='Nova Enfermeira'&&r.category==='ENFERMEIRO'));for(const r of before.records)assert(result.snapshot.records.some(v=>v.meta[1]===r.meta[1]&&v.category===r.category&&v.code===r.code));
+}
+console.log('PASS: cadastro permanente independente do mês, inclusão de linhas por categoria com formatos/validações/fórmulas e totais, bloqueio antes de expandir e equipe por dia/turno sem duplicar nomes.');

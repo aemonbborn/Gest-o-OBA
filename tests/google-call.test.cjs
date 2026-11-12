@@ -1,6 +1,6 @@
 const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
 const source=fs.readFileSync('app.js','utf8');
-const fn=source.slice(source.indexOf('function googleCall('),source.indexOf('async function initShared('));
+const fn=source.slice(source.indexOf('function googleCall('),source.indexOf('function catalogProfiles('));
 function context(api){const ctx={window:{google:api?{script:{run:api}}:undefined}};vm.createContext(ctx);vm.runInContext(fn,ctx);return ctx;}
 function runner(method){return {withSuccessHandler(fn){this.success=fn;return this;},withFailureHandler(fn){this.failure=fn;return this;},...method};}
 (async()=>{

@@ -12,5 +12,6 @@
  return {entries,newCount:entries.filter(e=>e.status==='Novo').length,invalidCount:entries.filter(e=>e.error).length,duplicateCount:entries.filter(e=>['Já cadastrado','Repetido na lista'].includes(e.status)).length};
  }
  function merge(state,review){const professionals=[...state.professionals],profiles=Object.assign(Object.create(null),state.profiles);for(const e of review.entries){if(e.status!=='Novo')continue;const p=e.profile;let label=`${p.name} · ${p.cooperative} · ${p.registration||'sem matrícula'} · ${p.category==='ENFERMEIRO'?'Enfermeiro':'Técnico'}`;let suffix=2;const base=label;while(professionals.includes(label)){label=base+' ('+suffix+++')';}professionals.push(label);profiles[label]={...p};}return {...state,professionals,profiles};}
- root.Professionals={norm,identity,parse,review,merge};if(typeof module!=='undefined')module.exports=root.Professionals;
+ function catalog(state,items){const known=new Set(state.professionals.map(label=>identity({...state.profiles?.[label],name:state.profiles?.[label]?.name||label})));const entries=[];for(const profile of items){const key=identity(profile);if(!known.has(key)){known.add(key);entries.push({status:'Novo',profile});}}return entries.length?merge(state,{entries}):state;}
+ root.Professionals={norm,identity,parse,review,merge,catalog};if(typeof module!=='undefined')module.exports=root.Professionals;
 })(typeof window==='undefined'?globalThis:window);

@@ -1,16 +1,10 @@
 # Gestão Emergência Adulto
 
-Aplicativo pessoal para organizar acionamentos de cooperados e editar plantões em uma grade mensal Google Sheets.
-
-## Instalar no Android
-
-[Baixar aplicativo Android (APK)](https://raw.githubusercontent.com/aemonbborn/Gest-o-OBA/main/downloads/gestao-emergencia-adulto.apk). Android 8 ou superior. Instale e, na primeira abertura, cole o link `/exec` da sua implantação Apps Script. O aplicativo salva a conexão e abre sua gestão automaticamente nas próximas aberturas pelo ícone.
-
-Esta versão tem configuração nativa e abre a gestão com Chrome Custom Tabs ou o navegador padrão para manter a autorização Google. Pode exibir controles do navegador e precisa de internet para a planilha. [Instalação, funcionamento e testes](android/README.md).
+Gestão pessoal de equipes e plantões em HTML, integrada ao Google Sheets por Google Apps Script. Interface atual: **gestao-2 · 2026.11**.
 
 ## Fluxo principal
 
-1. Busque e escolha o profissional. Nome, matrícula, cooperativa e função distinguem vínculos diferentes.
+1. Busque e escolha o profissional no **cadastro geral**, independente do mês. Nome, matrícula, cooperativa e função distinguem vínculos diferentes.
 2. Escolha a justificativa e quem será substituído. POR QUEM possui cadastro independente dos cooperados.
 3. Preencha os turnos no calendário.
 
@@ -21,6 +15,18 @@ Na implantação Google Apps Script, o mês atual carrega automaticamente quando
 Na consulta mensal, **Cooperados com plantões no mês** lista cada nome uma vez, com a quantidade de células preenchidas. A busca filtra os nomes do mês carregado. Selecionar um cooperado mostra todos os seus plantões no calendário e, logo abaixo, a lista por data com justificativa, POR QUEM e dados do vínculo. Justificativas, cooperativas ou funções diferentes não dividem o nome na consulta; os vínculos continuam identificados nos detalhes e nas operações de inserção/exclusão. A lista apresenta todos os plantões, sem corte em 50 registros. A troca de mês e a atualização recompõem a relação; meses vazios e falhas de leitura limpam a consulta anterior. Para receber esta mudança, atualize apenas **App.html** e publique **Nova versão** na implantação existente.
 
 No modo local, preencha os dias e use Salvar plantões. É possível selecionar vários meses antes de salvar; — retira a seleção de um dia. Turnos M, T, MT, N, 9C, MN, TN e MTN preservam compatibilidade com os backups anteriores.
+
+## Cadastro geral, crescimento dos blocos e equipe do dia
+
+O seletor principal **Cooperados cadastrados** usa um cadastro permanente, não a lista de plantões do mês. Na primeira sincronização, o servidor reúne os cadastros completos do navegador, os cooperados das abas mensais (mesmo sem turno preenchido) e a tabela cadastral de DADOS quando reconhece as quatro colunas. Mantém a lista na aba privada oculta **GESTAO_COOPERADOS**, dentro da própria planilha, para disponibilizá-la em outros navegadores/dispositivos. Nenhum nome é embutido nos arquivos públicos. POR QUEM continua sendo uma lista separada.
+
+Importações completas são sincronizadas automaticamente. Para um cadastro individual, use Cadastrar um cooperado, preencha matrícula/cooperativa/função e use **Salvar cadastro do cooperado**. Para trazer alterações feitas fora do app nas abas antigas ou em DADOS, abra Cadastros e ferramentas → Cadastro geral e importação → **Sincronizar cadastro com a planilha**. Sem conexão, o cadastro local continua disponível.
+
+Ao enviar plantões sem linha livre, o servidor primeiro simula todo o lote e confere sobreposições/fórmulas. Só então insere a quantidade necessária de linhas dentro do bloco ENFERMEIROS ou TÉCNICOS DE ENFERMAGEM, copia formatação, altura, validações e fórmulas relativas de carga da linha modelo, sem copiar nomes nem turnos. Ajusta faixas de totais que abrangiam o bloco inteiro. Em um bloco totalmente vazio, gera CHD/CHN/CH quando os cabeçalhos são reconhecidos. Relê o layout após expandir e retorna a grade com as linhas corretas. Conferências anteriores de remoção são descartadas quando a estrutura muda. Falhas durante a expansão/gravação exigem atualizar e conferir possíveis alterações parciais, sem repetição automática.
+
+Clique no **número do dia** para abrir a equipe, ou selecione **Equipe do dia** para consultar o mês com contagens diárias. Os filtros Geral/M/T/N/9C mostram os nomes agrupados em enfermeiros e técnicos, com vínculos e registros de justificativa/POR QUEM. MT participa de M e T; MN/TN/MTN também entram nos turnos correspondentes. 9C é um filtro próprio, sem supor horário. Na contagem geral, cada nome aparece uma vez; múltiplas linhas do mesmo nome ficam na mesma ficha. A consulta usa a aba carregada, inclui todos os profissionais e não depende do cooperado escolhido para inserir. Novas seleções ainda não enviadas não aparecem como equipe confirmada.
+
+O visual usa navegação em azul e verde, cartões de cadastro/mês, calendário com indicação de equipe e painéis que se adaptam a celular e computador. Histórico e funções secundárias seguem recolhidos. Para instalar este conjunto, substitua **Code.gs e App.html**, salve e publique **Nova versão** na mesma implantação. O cabeçalho e o rodapé identificam **gestao-2**.
 
 ## Alterar turno existente e buscar POR QUEM
 
@@ -76,11 +82,11 @@ Cópia mensal: selecione mês e função em Copiar ou exportar registros locais.
 
 Na planilha, o mesmo profissional/vínculo com a mesma justificativa e POR QUEM reutiliza uma linha existente. Matrícula vazia ou “-” não impede o reaproveitamento. Matrículas preenchidas diferentes, cooperativas ou funções diferentes não são unificadas. Havendo duplicatas preexistentes, procura uma linha correspondente com o dia livre antes de considerar outra linha. Se todas as linhas correspondentes já têm plantão naquele dia, usa uma linha de modelo vazia do mesmo bloco para acrescentar um turno compatível, copiando matrícula, nome, cooperativa, justificativa e POR QUEM da linha existente. Por exemplo, M e T no mesmo dia ficam em linhas separadas. Os plantões originais são preservados e os próximos dias voltam a usar uma linha correspondente com o dia livre. Turnos iguais ou sobrepostos no mesmo vínculo continuam bloqueados. Não consolida nem remove duplicatas históricas automaticamente.
 
-Se motivo ou POR QUEM forem diferentes, pode preencher outra linha vazia do bloco. Não insere linhas estruturais, não sobrescreve turnos, fórmulas ou totais. Alterações desde a conferência e sobreposições em outras linhas são bloqueadas. Exclusão remove apenas o turno da célula, mantendo a linha. Turnos combinados são excluídos como uma única célula.
+Se motivo ou POR QUEM forem diferentes, pode preencher outra linha vazia do bloco. Quando falta espaço, cria linhas no bloco adequado, sem sobrescrever plantões existentes. A expansão preserva as fórmulas e amplia os totais do bloco. Alterações desde a conferência e sobreposições em outras linhas são bloqueadas. Exclusão remove apenas o turno da célula, mantendo a linha. Turnos combinados são excluídos como uma única célula.
 
 A grade mensal local agrupa registros compatíveis, inclusive quando um registro não tem matrícula. A criação da linha adicional descrita acima se aplica à inserção na planilha conectada; a exportação local continua combinando os turnos compatíveis na mesma célula.
 
-Para acrescentar outro turno na planilha conectada, mantenha o profissional, a justificativa e o POR QUEM, escolha o turno em **Novo** no mesmo dia e clique em **Inserir**. Não precisa excluir nem alterar o turno verde existente. O calendário e os detalhes mostram os dois registros, identificados por suas linhas. Funciona também em lotes de dias. Exige uma linha de modelo vazia no bloco; não insere linhas estruturais nem altera fórmulas ou totais. Atualize Code.gs e App.html e publique Nova versão.
+Para acrescentar outro turno na planilha conectada, mantenha o profissional, a justificativa e o POR QUEM, escolha o turno em **Novo** no mesmo dia e clique em **Inserir**. Não precisa excluir nem alterar o turno verde existente. O calendário e os detalhes mostram os dois registros, identificados por suas linhas. Funciona também em lotes de dias. Se não houver linha vazia, cria espaço no bloco adequado, preservando os plantões e copiando o modelo de fórmulas, formatação e validação. Atualize Code.gs e App.html e publique Nova versão.
 
 ## Dados e conexão
 
@@ -119,6 +125,7 @@ node tests/shared-removals.test.cjs
 node tests/shared-shift-edit.test.cjs
 node tests/performance.test.cjs
 node tests/additional-shift.test.cjs
+node tests/workspace.test.cjs
 ```
 
 A consulta por cooperado possui `node tests/monthly-cooperators-browser.cjs`, que valida nomes únicos, todos os vínculos/justificativas, mais de 50 registros, busca, sincronização com o formulário, calendário, troca/atualização/mês vazio e falha de leitura sem escrita.
@@ -126,6 +133,8 @@ A consulta por cooperado possui `node tests/monthly-cooperators-browser.cjs`, qu
 A edição de turnos e as prévias de POR QUEM são verificadas por `node tests/shift-editor-browser.cjs`, com o código real do servidor e uma planilha simulada, em telas de celular e computador.
 
 `node tests/performance-browser.cjs` verifica uma chamada por inserção/exclusão/remoção, cancelamento sem chamada, atualização dos registros, conferência sem leitura extra e recuperação de conflitos, em telas de celular/computador.
+
+`node tests/workspace-browser.cjs` verifica cadastro geral em mês vazio e outro navegador, cadastro novo com busca ativa, criação de linhas nas duas categorias, preservação do modelo e consulta diária após alterações, em celular/computador. Usa apenas dados fictícios e uma simulação do serviço Google.
 
 O fluxo de remoção também possui um teste de navegador com planilha simulada: `node tests/removals-browser.cjs`, com Playwright disponível e Chromium instalado. Defina `CHROMIUM_PATH` se o executável estiver em outro caminho. Ele verifica os formatos de tela Android/Windows, prévia, homônimos, calendário, troca de mês, cancelamento, conflito e remoção confirmada, sem acessar a conta Google.
 
@@ -155,3 +164,7 @@ Pesquisa atualizada: as páginas oficiais da SISQUAL sobre saúde e transição 
 Além dos padrões anteriores, a geração inclui 24×48/24×72 em MTN, 5×2, 6×1, 4×2 e ciclo personalizado. Nos padrões em dias trabalhados/folgas, escolha o turno para calcular a carga efetiva. A prévia mostra horas do período e média teórica semanal; 5×2 não implica automaticamente 40h quando o turno da planilha tem 6h.
 
 Defina a Data-base do ciclo e preserve-a ao gerar os meses seguintes. O período inicial/final pode mudar sem reiniciar a sequência. A semana do MT alternado é definida pela data-base; nos dias fixos, a data-base não é usada. A geração aceita ciclos de até 14 dias de trabalho e 14 de descanso. Consulte os detalhes e fontes em docs/escalas-e-referencias.md.
+
+## Android legado
+
+A versão atual prioriza o HTML integrado ao Apps Script. O lançador Android anterior e suas instruções permanecem em [android/README.md](android/README.md).

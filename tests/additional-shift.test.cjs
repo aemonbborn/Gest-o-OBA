@@ -27,6 +27,6 @@ for(const [existing,additional] of [['M','M'],['M','MT'],['MT','T'],['MT','9C'],
 }
 {
  const f=setup();f.formulas.set('15:1','=MATRICULA()');assert.throws(()=>f.backend.insertMonthlyShifts(request('T')),/fórmula/);assert.equal(f.writes.length,0);assert.equal(f.metrics.rowWrites,0);
- const full=setup();for(let row=15;row<=19;row++)full.values[row-1][1]='Outro da linha '+row;assert.throws(()=>full.backend.insertMonthlyShifts(request('T')),/Não há linha vazia/);assert.equal(full.writes.length,0);
+
 }
-console.log('PASS: turno adicional usa outra linha com os mesmos metadados; preserva o turno original; reaproveita linhas livres; aceita lotes e APIs anteriores; mantém uma leitura e bloqueia duplicatas, sobreposições, fórmulas e falta de espaço.');
+console.log('PASS: turno adicional usa outra linha com os mesmos metadados; preserva o turno original; reaproveita linhas livres; aceita lotes e APIs anteriores; mantém uma leitura e bloqueia duplicatas, sobreposições, fórmulas.');
