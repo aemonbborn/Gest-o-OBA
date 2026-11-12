@@ -1,6 +1,6 @@
 # Gestão Emergência Adulto
 
-Gestão pessoal de equipes e plantões em HTML, integrada ao Google Sheets por Google Apps Script. Interface atual: **gestao-2 · 2026.11**.
+Gestão pessoal de equipes e plantões em HTML, integrada ao Google Sheets por Google Apps Script. Interface atual: **gestao-2 · 2026.11.2**.
 
 ## Fluxo principal
 
@@ -24,7 +24,9 @@ Importações completas são sincronizadas automaticamente. Para um cadastro ind
 
 Ao enviar plantões sem linha livre, o servidor primeiro simula todo o lote e confere sobreposições/fórmulas. Só então insere a quantidade necessária de linhas dentro do bloco ENFERMEIROS ou TÉCNICOS DE ENFERMAGEM, copia formatação, altura, validações e fórmulas relativas de carga da linha modelo, sem copiar nomes nem turnos. Ajusta faixas de totais que abrangiam o bloco inteiro. Em um bloco totalmente vazio, gera CHD/CHN/CH quando os cabeçalhos são reconhecidos. Relê o layout após expandir e retorna a grade com as linhas corretas. Conferências anteriores de remoção são descartadas quando a estrutura muda. Falhas durante a expansão/gravação exigem atualizar e conferir possíveis alterações parciais, sem repetição automática.
 
-Clique no **número do dia** para abrir a equipe, ou selecione **Equipe do dia** para consultar o mês com contagens diárias. Os filtros Geral/M/T/N/9C mostram os nomes agrupados em enfermeiros e técnicos, com vínculos e registros de justificativa/POR QUEM. MT participa de M e T; MN/TN/MTN também entram nos turnos correspondentes. 9C é um filtro próprio, sem supor horário. Na contagem geral, cada nome aparece uma vez; múltiplas linhas do mesmo nome ficam na mesma ficha. A consulta usa a aba carregada, inclui todos os profissionais e não depende do cooperado escolhido para inserir. Novas seleções ainda não enviadas não aparecem como equipe confirmada.
+Clique no **número do dia** para abrir a equipe, ou selecione **Equipe do dia** para consultar o mês com contagens diárias. Os filtros Geral/M/T/MT/N/9C mostram os nomes agrupados em enfermeiros e técnicos, com vínculos e registros de justificativa/POR QUEM. MT tem filtro próprio e continua participando de M e T; MTN também entra em MT, M, T e N. MN/TN entram nos turnos correspondentes. 9C é um filtro próprio, sem supor horário. Na contagem geral, cada nome aparece uma vez; múltiplas linhas do mesmo nome ficam na mesma ficha. A consulta usa a aba carregada, inclui todos os profissionais e não depende do cooperado escolhido para inserir. Novas seleções ainda não enviadas não aparecem como equipe confirmada.
+
+Na visão **Equipe do dia**, cada data mostra o total de nomes únicos, E (enfermeiros), TE (técnicos) e quantitativos grandes de **M, T, MT, N e 9C**, inclusive zeros. Clique no número de um turno para abrir diretamente esse filtro. No painel diário, os cartões mostram total no filtro, enfermeiros e técnicos, antes da lista de nomes. MT e MTN participam do filtro MT; registros separados M e T continuam nos respectivos turnos. O total geral conta nomes únicos, sem somar as participações nos turnos. As contagens são reutilizadas enquanto a aba carregada não muda e não fazem chamadas adicionais ao servidor. Essa melhoria exige somente atualizar **App.html** e publicar Nova versão quando o Code.gs gestao-2 já está instalado.
 
 O visual usa navegação em azul e verde, cartões de cadastro/mês, calendário com indicação de equipe e painéis que se adaptam a celular e computador. Histórico e funções secundárias seguem recolhidos. Para instalar este conjunto, substitua **Code.gs e App.html**, salve e publique **Nova versão** na mesma implantação. O cabeçalho e o rodapé identificam **gestao-2**.
 
@@ -126,6 +128,7 @@ node tests/shared-shift-edit.test.cjs
 node tests/performance.test.cjs
 node tests/additional-shift.test.cjs
 node tests/workspace.test.cjs
+node tests/team.test.cjs
 ```
 
 A consulta por cooperado possui `node tests/monthly-cooperators-browser.cjs`, que valida nomes únicos, todos os vínculos/justificativas, mais de 50 registros, busca, sincronização com o formulário, calendário, troca/atualização/mês vazio e falha de leitura sem escrita.
@@ -135,6 +138,8 @@ A edição de turnos e as prévias de POR QUEM são verificadas por `node tests/
 `node tests/performance-browser.cjs` verifica uma chamada por inserção/exclusão/remoção, cancelamento sem chamada, atualização dos registros, conferência sem leitura extra e recuperação de conflitos, em telas de celular/computador.
 
 `node tests/workspace-browser.cjs` verifica cadastro geral em mês vazio e outro navegador, cadastro novo com busca ativa, criação de linhas nas duas categorias, preservação do modelo e consulta diária após alterações, em celular/computador. Usa apenas dados fictícios e uma simulação do serviço Google.
+
+`node tests/team-browser.cjs` verifica MT/MTN em MT e M/T, números diários, categorias, zeros, clique direto no turno e atualização após recarga, em celular/computador, sem consultas extras durante a navegação.
 
 O fluxo de remoção também possui um teste de navegador com planilha simulada: `node tests/removals-browser.cjs`, com Playwright disponível e Chromium instalado. Defina `CHROMIUM_PATH` se o executável estiver em outro caminho. Ele verifica os formatos de tela Android/Windows, prévia, homônimos, calendário, troca de mês, cancelamento, conflito e remoção confirmada, sem acessar a conta Google.
 

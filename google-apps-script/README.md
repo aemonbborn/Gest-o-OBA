@@ -109,6 +109,16 @@ Atualize **Code.gs e App.html**, salve e publique **Nova versão**. O rodapé do
 
 `insertMonthlyShifts` simula o lote completo antes de alterar a estrutura. Sem espaço, insere linhas dentro da seção da função, copia formato/validação/altura e fórmulas R1C1 do modelo, sem copiar seus nomes ou turnos. Atualiza faixas de totais que cobriam todo o bloco, inclusive quando havia uma única linha. Um bloco sem linha modelo recebe fórmulas de carga quando CHD/CHN/CH são identificados. Os cabeçalhos e rodapés estruturais ficam fora da área de dados. A grade é relida após a expansão, para usar os números de linha atuais. Em caso de falha, pode haver linhas ou gravações parciais: a mensagem pede nova conferência, e o cliente não repete a operação automaticamente.
 
-A visão Equipe do dia e o clique no número de qualquer dia consultam todos os registros da aba carregada, sem nova chamada por clique. Mostram Geral/M/T/N/9C e categorias. MT/MN/TN/MTN são expandidos para os turnos correspondentes; 9C fica separado. Cada nome é contado uma vez no Geral e pode reunir vários vínculos/justificativas na ficha. Plantões novos só entram após confirmação do servidor. Uma mudança estrutural descarta a prévia de remoção do cliente.
+A visão Equipe do dia e o clique no número de qualquer dia consultam todos os registros da aba carregada, sem nova chamada por clique. Mostram Geral/M/T/MT/N/9C e categorias. MT/MN/TN/MTN são expandidos para os turnos correspondentes; 9C fica separado. Cada nome é contado uma vez no Geral e pode reunir vários vínculos/justificativas na ficha. Plantões novos só entram após confirmação do servidor. Uma mudança estrutural descarta a prévia de remoção do cliente.
 
 Novos arquivos de fonte: team.js (consulta e agregação) e atualização de professionals.js (fusão idempotente do catálogo). Eles já estão embutidos em App.html. Testes: `node tests/workspace.test.cjs` e, com Playwright/Chromium, `node tests/workspace-browser.cjs`. O segundo também exercita um navegador sem armazenamento anterior. Os testes não fazem login Google nem alteram a planilha real.
+
+## Quantitativo diário e filtro MT — interface 2026.11.2
+
+Com o servidor gestao-2 já instalado, atualize somente **App.html**, salve e publique **Nova versão** na mesma implantação. Não há mudança no Code.gs nesta melhoria.
+
+MT tem opção própria e permanece em M e T; MTN também aparece em MT/M/T/N. A contagem usa nomes únicos por turno, sem duplicar a mesma pessoa por linhas repetidas. Registros separados M e T não são convertidos em MT. O total geral reúne cada nome uma única vez e não é a soma dos turnos.
+
+Cada célula do calendário na visão Equipe do dia apresenta total, enfermeiros (E), técnicos (TE) e as contagens de M/T/MT/N/9C com números maiores, incluindo zeros. Clique em um quantitativo para consultar diretamente aquele dia e turno. O painel diário mostra cartões com total no filtro e divisão por função. As contagens reutilizam a aba carregada; nenhuma consulta adicional à planilha é feita por clique. Uma recarga ou resposta de gravação substitui a aba e invalida as contagens anteriores.
+
+Verificações: `node tests/team.test.cjs` e `node tests/team-browser.cjs` com Playwright/Chromium; dados fictícios e servidor simulado, sem acesso à conta Google.
