@@ -1,6 +1,18 @@
 # Gestão Emergência Adulto
 
-Gestão pessoal de equipes e plantões em HTML, integrada ao Google Sheets por Google Apps Script. Interface atual: **gestao-2 · 2026.11.2**.
+Gestão pessoal de equipes e plantões em HTML, integrada ao Google Sheets por Google Apps Script. Interface atual: **gestao-2 · relatorios-1 · 2026.11.3**.
+
+## Relatórios e exportação
+
+Abra **Relatórios** na navegação superior, escolha um dia, um mês, vários meses ou um intervalo de datas e clique em **Gerar / atualizar relatório**. Na equipe do dia, **Relatório deste dia** abre diretamente a consulta da data. A consulta lê as abas escolhidas da planilha conectada, sem modificar células. Registros locais têm uma origem própria e não são misturados com a planilha.
+
+Combine profissão, turno, cooperado/matrícula, cooperativa, justificativa, POR QUEM, presença de substituição e dias da semana. Os filtros reutilizam os dados consultados, sem nova chamada ao Google a cada clique. Há indicadores de plantões, horas, cooperados distintos, dias com plantão, média diária de cooperados e pico de equipe; oito gráficos mostram participação dos cooperados, evolução diária, meses, profissões, códigos de turno, justificativas, cooperativas e dias da semana. A tabela pode ser detalhada ou agrupada, com páginas de 50 linhas; os arquivos incluem todos os resultados filtrados.
+
+Exporte **Excel (.xlsx)** com resumo, plantões e nove tabelas agrupadas; **CSV** detalhado ou do agrupamento escolhido; **HTML com gráficos** para abrir e compartilhar; ou use **Imprimir / PDF** e escolha Salvar como PDF no navegador. Os gráficos acompanham HTML e impressão; o Excel contém as tabelas e os indicadores. Origem, data da consulta, período e filtros acompanham as exportações.
+
+MT participa de M, T e MT no filtro que inclui combinações; a opção **Código exato** restringe ao conteúdo da célula. Cada célula é contada uma vez e suas horas correspondem ao plantão completo, mesmo ao filtrar M de um MT. Horas sem código conhecido e possíveis duplicidades recebem avisos; não há cálculo de ocupação contratual. Alterações feitas pelo aplicativo invalidam a exportação dos meses afetados até nova consulta. Para alterações externas na planilha, use Gerar / atualizar relatório. Consulte o [guia dos relatórios](docs/relatorios.md) para exemplos e definições.
+
+Esta função exige substituir **Code.gs e App.html**, salvar e publicar **Nova versão** na mesma implantação. O cabeçalho deve incluir **relatorios-1**. Não é necessário executar configurarGestao novamente no mesmo projeto/planilha.
 
 ## Fluxo principal
 
@@ -129,7 +141,12 @@ node tests/performance.test.cjs
 node tests/additional-shift.test.cjs
 node tests/workspace.test.cjs
 node tests/team.test.cjs
+node tests/reports.test.cjs
+node tests/shared-reports.test.cjs
+node tests/report-xlsx.test.cjs
 ```
+
+`node tests/reports-browser.cjs` verifica períodos, filtros sem consultas extras, oito gráficos, arquivos XLSX/CSV/HTML e PDF reais, paginação com exportação completa, invalidação por alterações em outros meses e origem local separada, em celular/computador. Usa Playwright/Chromium e uma planilha simulada. A validação dos arquivos XLSX também usa Python 3 com openpyxl; o aplicativo não depende dessas bibliotecas em execução.
 
 A consulta por cooperado possui `node tests/monthly-cooperators-browser.cjs`, que valida nomes únicos, todos os vínculos/justificativas, mais de 50 registros, busca, sincronização com o formulário, calendário, troca/atualização/mês vazio e falha de leitura sem escrita.
 

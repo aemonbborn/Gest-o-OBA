@@ -10,9 +10,9 @@ const REMOVAL_VERSION_='lista-1';
 const EDIT_VERSION_='turno-1';
 const PERFORMANCE_VERSION_='rapido-1';
 const WORKSPACE_VERSION_='gestao-2';
-function getIntegrationInfo(){return {version:INTEGRATION_VERSION_,removalVersion:REMOVAL_VERSION_,editVersion:EDIT_VERSION_,performanceVersion:PERFORMANCE_VERSION_,workspaceVersion:WORKSPACE_VERSION_};}
+function getIntegrationInfo(){return {version:INTEGRATION_VERSION_,removalVersion:REMOVAL_VERSION_,editVersion:EDIT_VERSION_,performanceVersion:PERFORMANCE_VERSION_,workspaceVersion:WORKSPACE_VERSION_,reportsVersion:'relatorios-1'};}
 function listMonthlySheets(){return livro_().getSheets().map(s=>s.getName()).filter(n=>MONTHS_[n]);}
-function grade_(name,withFormulas=false){if(!MONTHS_[name])throw Error('Selecione uma aba mensal válida.');const s=livro_().getSheetByName(name);if(!s)throw Error('Aba não encontrada.');const data=s.getDataRange(),values=data.getDisplayValues(),formulas=withFormulas?data.getFormulas():null;let year=null;for(const row of values.slice(0,12)){for(const cell of row){const match=String(cell).match(/\b(20\d{2})\b/);if(match)year=Number(match[1]);}}if(!year)throw Error('O título desta aba precisa conter o ano, por exemplo OUTUBRO DE 2026.');
+function grade_(name,withFormulas=false,book=null){if(!MONTHS_[name])throw Error('Selecione uma aba mensal válida.');const s=(book||livro_()).getSheetByName(name);if(!s)throw Error('Aba não encontrada.');const data=s.getDataRange(),values=data.getDisplayValues(),formulas=withFormulas?data.getFormulas():null;let year=null;for(const row of values.slice(0,12)){for(const cell of row){const match=String(cell).match(/\b(20\d{2})\b/);if(match)year=Number(match[1]);}}if(!year)throw Error('O título desta aba precisa conter o ano, por exemplo OUTUBRO DE 2026.');
 const blocks=[];for(let i=0;i<values.length;i++){const row=values[i];if(norm_(row[0])==='MAT'&&norm_(row[1])==='NOME'&&norm_(row[2])==='COOPERATIVA'&&norm_(row[3])==='MOTIVO'&&norm_(row[4])==='POR QUEM'){let category=null,headingRow=null;for(let k=i-1;k>=Math.max(0,i-5);k--){const heading=norm_(values[k][0]);if(heading.includes('ENFERMEIROS')){category='ENFERMEIRO';headingRow=k+1;break;}if(heading.includes('TECNICOS')){category='TÉCNICO DE ENFERMAGEM';headingRow=k+1;break;}}if(!category)throw Error('Não foi possível identificar a função do bloco na linha '+(i+1));blocks.push({header:i+1,start:i+2,end:values.length,category,heading:headingRow});}}
 if(!blocks.length)throw Error('Cabeçalhos da grade não reconhecidos.');for(let i=0;i<blocks.length-1;i++)blocks[i].end=blocks[i+1].heading-1;
 for(const b of blocks)for(let row=b.start;row<=b.end;row++)if((values[row-1]||[]).slice(0,5).some(v=>/^(TOTAL(?:IZACAO)?(?:\s|$)|SUBTOTAL(?:\s|$)|RESUMO(?:\s|$)|OBSERVAC(?:AO|OES)(?:\s|:|$))/.test(norm_(v)))){b.end=row-1;break;}
@@ -234,4 +234,13 @@ function syncCooperatorCatalog(p){
   if(rows.length&&(!sheet||JSON.stringify(existing)!==JSON.stringify(rows))){if(!sheet){sheet=book.insertSheet(CATALOG_SHEET_);sheet.getRange(1,1,1,4).setValues([['MAT','NOME','CATEGORIA','COOPERATIVA']]);sheet.hideSheet();}if(sheet.getMaxRows()<rows.length+1)sheet.insertRowsAfter(sheet.getMaxRows(),rows.length+1-sheet.getMaxRows());sheet.getRange(2,1,rows.length,4).setNumberFormat('@').setValues(rows);if(existing.length>rows.length)sheet.getRange(rows.length+2,1,existing.length-rows.length,4).clearContent();SpreadsheetApp.flush();}
   return {profiles};
  }finally{lock.releaseLock();}
+}
+
+
+/** Consulta somente leitura, em uma chamada, sem misturar resultados parciais. */
+function readReportSheets(p){
+ if(!p||!Array.isArray(p.sheets)||!p.sheets.length||p.sheets.length>12||new Set(p.sheets).size!==p.sheets.length||p.sheets.some(name=>typeof name!=='string'||!Object.prototype.hasOwnProperty.call(MONTHS_,name)))throw Error('Selecione de 1 a 12 abas mensais válidas, sem repetições.');
+ if(p.expectedMonths!==undefined&&(!p.expectedMonths||typeof p.expectedMonths!=='object'||Array.isArray(p.expectedMonths)||Object.values(p.expectedMonths).some(m=>typeof m!=='string'||!/^\d{4}-(0[1-9]|1[0-2])$/.test(m))))throw Error('Confira os meses do período.');
+ const lock=LockService.getScriptLock();lock.waitLock(15000);
+ try{const book=livro_(),snapshots=[];for(const name of p.sheets){const g=grade_(name,false,book);if(p.expectedMonths?.[name]&&p.expectedMonths[name]!==g.month)throw Error('A aba '+name+' corresponde a '+g.month+', diferente do período solicitado ('+p.expectedMonths[name]+').');snapshots.push(snapshot_(g));}return {snapshots,generatedAt:new Date().toISOString(),version:'relatorios-1'};}finally{lock.releaseLock();}
 }

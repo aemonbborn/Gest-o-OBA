@@ -18,6 +18,18 @@ Os testes automatizados usam um modelo simulado de planilha e não substituem a 
 
 App.html é gerado por `python3 scripts/build_apps_script.py` a partir do aplicativo. Execute esse comando após mudanças de interface.
 
+## Relatórios — relatorios-1
+
+Substitua **Code.gs e App.html**, salve os dois e publique **Nova versão** na implantação existente. O cabeçalho passa a incluir **relatorios-1**, e o rodapé mostra Interface 2026.11.3. No mesmo projeto/planilha já configurado, não execute configurarGestao novamente.
+
+Abra **Relatórios** na navegação superior ou **Relatório deste dia** na equipe diária. Consulte um dia, mês, vários meses ou intervalo e combine os filtros. Exporte Excel com dados e resumos, CSV, HTML com gráficos ou use Imprimir / PDF. O [guia dos relatórios](../docs/relatorios.md) descreve indicadores, turnos, horas e formatos.
+
+`readReportSheets({sheets, expectedMonths})` lê de uma a doze abas mensais em uma chamada, reutilizando a abertura do arquivo. Usa o mesmo reconhecimento de layout do calendário, compara o ano/mês quando o período contém datas completas e devolve snapshots e horário da consulta. Qualquer falha impede resultados parciais. A leitura é serializada com as escritas do script; edições manuais externas continuam possíveis durante uma consulta. O endpoint não altera células, não cria cadastro e não permite consultar DADOS ou abas arbitrárias.
+
+Os filtros e gráficos seguintes usam os dados em memória. Alterações pelo aplicativo invalidam os meses afetados, inclusive remoções fora da aba do calendário, e exigem nova consulta para exportar. Mudanças externas exigem clicar em Gerar / atualizar relatório. Sem Apps Script, a origem disponível é somente Registros deste navegador; não há substituição silenciosa dos dados conectados por dados locais.
+
+Verificações: `node tests/reports.test.cjs`, `node tests/shared-reports.test.cjs`, `node tests/report-xlsx.test.cjs` e `node tests/reports-browser.cjs`. Usam dados fictícios; o último cobre celular/computador, exportações reais, filtros, meses sem dados, troca de período e atualização após remoções. Playwright/Chromium e Python/openpyxl são necessários apenas para esses testes, não para usar o app.
+
 ## Primeiro acesso à planilha real
 
 Para começar somente pela leitura, use Extensões → Apps Script na planilha real, instale Code.gs e App.html, execute configurarGestao e publique com sua conta como usuário que acessa. Abrir o app, listar abas e clicar em Carregar plantões existentes não modifica células. Confira os registros antes de usar Inserir ou Excluir, que exigem confirmação. A URL e a autorização da implantação precisam ser criadas pelo usuário; enviar o link da planilha não autoriza automaticamente o aplicativo.
